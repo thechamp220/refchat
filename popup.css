@@ -1,0 +1,964 @@
+/* Popup : 360 px, lu en deux secondes. Cinq onglets, un sujet chacun :
+   Accueil (ça marche ? combien ?), Chat (ce qu'on voit), Réponses (Grok),
+   Modèles (qui juge, avec quelle clé), Avancé (sync). */
+
+body {
+  width: 360px;
+  max-width: 100%;
+  padding-bottom: 14px;
+}
+
+.sprite {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+/* --- Onglets --------------------------------------------------------------
+   En-tête et onglets collés en haut : un onglet long défile dessous. Fond
+   plein, pas de flou (le popup repeint toutes les 1,5 s). */
+.top {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--bg);
+  box-shadow: 0 1px 0 var(--line);
+}
+
+.tabs {
+  display: flex;
+  gap: 2px;
+  padding: 0 10px;
+}
+
+.tab {
+  position: relative;
+  flex: 1 1 auto;
+  height: 34px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 8px 8px 0 0;
+  background: none;
+  color: var(--ink-3);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.tab:hover {
+  background: none;
+  color: var(--ink-2);
+}
+
+.tab.on { color: var(--ink); }
+
+.tab.on::after {
+  content: "";
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 0;
+  height: 2px;
+  border-radius: 2px 2px 0 0;
+  background: var(--ink);
+}
+
+/* Hauteur plancher : passer d'un onglet à l'autre ne fait pas sauter la fenêtre. */
+.panes {
+  min-height: 456px;
+  padding-top: 12px;
+}
+
+.pane > .group { margin: 16px 16px 7px; }
+.pane > .group:first-child { margin-top: 2px; }
+
+.pane-intro,
+.pane-note {
+  margin: 0 16px 12px;
+  color: var(--ink-3);
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+
+.pane-note { margin-top: 12px; margin-bottom: 0; }
+.auto-reply-start { display: flex; flex-wrap: wrap; gap: 8px; }
+.auto-reply-start .toggle-text, .auto-reply-start > small { flex-basis: 100%; }
+.auto-reply-start input { min-width: 0; flex: 1 1 130px; }
+
+.card {
+  margin: 0 14px 10px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+/* --- En-tête -------------------------------------------------------------- */
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 16px 8px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+h1 {
+  font: 650 15px/1 var(--display);
+  letter-spacing: -0.01em;
+}
+
+.ver {
+  padding: 3px 6px;
+  border-radius: 6px;
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line);
+  color: var(--ink-3);
+  font: 10.5px/1 var(--mono);
+}
+
+.ver:empty { display: none; }
+
+/* Témoin posé sur la marque, comme une LED de façade. */
+.led {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--off);
+  box-shadow: 0 0 0 2.5px var(--bg);
+}
+
+.led.green { background: var(--ok); }
+.led.red { background: var(--bad); }
+.led.gold { background: var(--warn); }
+
+.master {
+  flex: none;
+  gap: 9px;
+  padding: 5px 6px 5px 11px;
+  border-radius: 999px;
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.master:has(input:checked) { color: var(--ink); }
+
+/* --- Santé ---------------------------------------------------------------- */
+.health {
+  --tone: var(--off);
+  position: relative;
+  overflow: hidden;
+  padding: 12px 14px 13px 16px;
+}
+
+.health::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: var(--tone);
+}
+
+.health.ok { --tone: var(--ok); }
+.health.warn { --tone: var(--warn); }
+.health.bad {
+  --tone: var(--bad);
+  background: color-mix(in srgb, var(--bad) 6%, var(--surface));
+}
+
+.status {
+  margin: 0 0 12px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.status.bad { color: color-mix(in srgb, var(--bad) 72%, var(--ink)); }
+
+.chain {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.step {
+  --st: var(--off);
+  position: relative;
+  min-width: 0;
+  padding: 15px 8px 0 0;
+}
+
+.step i {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--st);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--st) 20%, transparent);
+}
+
+/* Le fil entre deux maillons prend la couleur de celui d'où il part. */
+.step:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  top: 4px;
+  left: 17px;
+  right: 9px;
+  height: 1px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--st) 55%, transparent), var(--line-2));
+}
+
+.step .k {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.step .v {
+  display: block;
+  font-size: 11.5px;
+  color: var(--ink-3);
+  overflow-wrap: anywhere;
+  line-height: 1.35;
+}
+
+.step[data-goto] { cursor: pointer; }
+.step[data-goto]:hover .k { color: var(--ink); }
+
+.step.ok { --st: var(--ok); }
+.step.warn { --st: var(--warn); }
+.step.bad { --st: var(--bad); }
+.step.warn .v { color: var(--warn); }
+.step.bad .v { color: var(--bad); }
+
+/* --- Compteurs ------------------------------------------------------------ */
+.tally { padding: 12px 14px 12px; }
+
+.tally-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.stat span {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+
+.stat b {
+  display: block;
+  font-family: var(--display);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.total b {
+  margin-top: 1px;
+  font-size: 28px;
+  font-weight: 650;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.rate-note {
+  flex: 1 1 150px;
+  min-width: 0;
+  margin: 0 0 4px;
+  font-size: 11.5px;
+  color: var(--ink-3);
+  text-align: right;
+}
+
+.rate-note b {
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Part acceptés / rejetés. Vide tant que rien n'est tranché. */
+.split {
+  display: flex;
+  gap: 2px;
+  height: 6px;
+  margin: 10px 0 12px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--raised);
+}
+
+.split i {
+  display: block;
+  width: 0;
+  height: 100%;
+}
+
+.split .acc { background: var(--ok); }
+.split .wait { background: var(--warn); }
+.split .rej { background: var(--bad); }
+
+.tally-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.tally-grid .stat {
+  min-width: 0;
+  padding-left: 10px;
+  border-left: 1px solid var(--line);
+}
+
+.tally-grid .stat:first-child {
+  padding-left: 0;
+  border-left: 0;
+}
+
+.tally-grid .stat b {
+  margin-top: 2px;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* --- Action principale --------------------------------------------------- */
+.analyze {
+  padding: 10px;
+}
+
+.analyze-btn {
+  width: 100%;
+  min-height: 38px;
+  height: auto;
+  padding: 10px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.3;
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--bg);
+  font-size: 12.5px;
+  font-weight: 700;
+  /* Repeint toutes les 1,5 s, souvent grisé puis rallumé : pas de fondu. */
+  transition: none;
+}
+
+/* Blanc plein = l'action de l'écran, comme un interrupteur allumé. La couleur
+   reste réservée aux états. */
+.analyze-btn:hover {
+  background: #fff;
+  border-color: #fff;
+}
+
+.analyze-btn:disabled,
+.analyze-btn:disabled:hover {
+  opacity: 1;
+  border-color: var(--line-2);
+  background: var(--raised);
+  color: var(--ink-3);
+}
+
+.analyze-btn.running,
+.analyze-btn.running:hover {
+  border-color: color-mix(in srgb, var(--ok) 55%, transparent);
+  background: color-mix(in srgb, var(--ok) 12%, var(--raised));
+  color: var(--ink);
+}
+
+.analyze > small {
+  display: block;
+  margin-top: 7px;
+  color: var(--ink-3);
+  font-size: 10.5px;
+  line-height: 1.3;
+  text-align: center;
+}
+
+.analyze small.bad { color: var(--bad); }
+
+/* --- IA en direct --------------------------------------------------------- */
+.live {
+  margin-top: 10px;
+  padding: 10px 4px 2px;
+  border-top: 1px solid var(--line);
+}
+.live-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.live-head .toggle-text { min-width: 0; }
+.live-head .toggle-text small { display: block; color: var(--ink-3); font-size: 10.5px; }
+.live select {
+  flex: none;
+  min-width: 70px;
+  max-width: 146px;
+  padding-left: 9px;
+  border: 1px solid var(--line-2);
+  border-radius: 7px;
+  background-color: var(--raised);
+  color: var(--ink);
+  font-size: 11px;
+}
+.live-status { margin: 8px 0 0; color: var(--ink-3); font-size: 11px; line-height: 1.4; overflow-wrap: anywhere; }
+.live-status.bad { color: var(--bad); }
+.live-gate { margin: 5px 0 0; color: var(--ink-3); font-size: 10.5px; line-height: 1.35; }
+.live-review { margin-top: 8px; border-top: 1px solid var(--line); padding-top: 7px; }
+.live-review summary { cursor: pointer; color: var(--ink-2); font-size: 11px; }
+.live-events { max-height: 220px; overflow-y: auto; }
+.live-event { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; padding: 7px 0; border-bottom: 1px solid var(--line); }
+.live-event span { flex: 1 1 100%; overflow-wrap: anywhere; color: var(--ink-2); font-size: 10.5px; }
+.live-event button { padding: 4px 7px; font-size: 10.5px; }
+.live-active { margin-top: 7px; }
+
+.stat.ok b { color: var(--ok); }
+.stat.bad b { color: var(--bad); }
+.stat.skip b { color: var(--ink-2); }
+.stat.wait b { color: var(--ink-2); }
+
+/* Objectif : 0. Un seul ignoré est déjà une réponse de modèle illisible — on
+   le montre plutôt que de le fondre dans les acceptés. */
+.stat.skip.warn span,
+.stat.skip.warn b { color: var(--warn); }
+.stat.wait.warn span,
+.stat.wait.warn b { color: var(--warn); }
+
+/* --- Options -------------------------------------------------------------- */
+.section { padding: 12px 14px; }
+.section .toggle.row { padding: 0; }
+.section-note {
+  display: block;
+  margin: 8px 0 0;
+  color: var(--ink-3);
+  font-size: 11px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.options > .row { padding: 10px 14px; }
+.options > .row + .row { border-top: 1px solid var(--line); }
+.options > .section-note { margin: 0; }
+.toggle.row { padding: 10px 14px; }
+
+.options .toggle.row + .toggle.row { border-top: 1px solid var(--line); }
+.options .toggle.row + .scope-row,
+.options .scope-row + .toggle.row { border-top: 1px solid var(--line); }
+
+/* Grok répond à ma place : liste des personnes confiées. */
+.hand.row { padding: 10px 14px; }
+.options .hand.row + .toggle.row { border-top: 1px solid var(--line); }
+.quick-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  border-top: 1px solid var(--line);
+}
+.quick-summary .toggle-text { flex: 1 1 110px; }
+.quick-copy { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+.quick-copy .sub { margin-right: 2px; color: var(--ink-3); font-size: 11px; }
+.quick-summary .toggle-text { flex-direction: row; flex-wrap: wrap; column-gap: 10px; }
+.options > .quick-action-row { padding-top: 12px; padding-bottom: 12px; }
+.quick-action-row { display: grid; gap: 8px; }
+.quick-action-row input { width: 100%; min-width: 0; }
+.quick-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.quick-actions button { min-width: 0; }
+.options > #quickMuteFeedback { margin: 0; padding-top: 0; border-top: 0; }
+
+.account-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
+#xaiOAuthBtn { flex: 1 1 140px; height: auto; min-height: 30px; padding: 8px 10px; white-space: normal; }
+#xaiOAuthLink { display: block; margin-top: 8px; font-size: 11px; overflow-wrap: anywhere; }
+.hand .toggle-text small { display: block; }
+.hand .live-events:not(:empty) { margin-top: 6px; }
+.hand .live-event b { flex: 0 1 auto; min-width: 0; max-width: 100%; font-size: 11.5px; overflow-wrap: anywhere; }
+.hand .live-event small { flex: 1 1 auto; min-width: 0; color: var(--ink-3); font-size: 10.5px; overflow-wrap: anywhere; }
+.hand #handStopAll { margin-top: 6px; }
+.hand .live-status { overflow-wrap: anywhere; }
+.hand .my-style { margin: 10px 0 0; }
+.hand .my-style textarea { width: 100%; box-sizing: border-box; }
+
+.scope-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+}
+
+.scope-row.off { opacity: 0.45; }
+
+.scope-row select {
+  flex: 0 0 auto;
+  max-width: 148px;
+  height: 30px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--raised);
+  box-shadow: inset 0 0 0 1px var(--line);
+  color: var(--ink);
+  font: 600 12px/1 var(--sans);
+  cursor: pointer;
+}
+
+.toggle-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.toggle-text b {
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.toggle-text small {
+  font-size: 11px;
+  color: var(--ink-3);
+  overflow-wrap: anywhere;
+}
+
+/* Réglage sans effet tant que le filtre est coupé : grisé, pas caché — on doit
+   voir qu'il existe et pourquoi il ne répond pas. */
+.toggle.off { opacity: 0.45; }
+
+/* --- Modèles -------------------------------------------------------------- */
+.sec-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 2px 16px 7px;
+}
+
+.sec-head h2,
+.group {
+  font-size: 10.5px;
+  font-weight: 650;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.sec-head span {
+  font-size: 11.5px;
+  color: var(--ink-3);
+}
+
+.sec-head span b { color: var(--ink-2); font-weight: 600; }
+
+/* Le résumé garde sa place ; c'est le pli qui va à droite. */
+.sec-head span { margin-left: auto; }
+
+/* Plier les stats des modèles : le choix du juge (la déroulante) reste, seul
+   le tableau de bord se cache — il sert au diagnostic, pas à l'usage courant. */
+.lane-foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 10px 9px 14px;
+  font-size: 11.5px;
+  color: var(--ink-3);
+}
+
+.lane-foot #laneSum {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lane-foot #laneSum.ok { color: var(--ok); }
+.lane-foot #laneSum.bad { color: var(--bad); }
+
+.lanes:not([hidden]) { border-top: 1px solid var(--line); }
+
+.fold {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 3px;
+  height: 24px;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 2px 4px;
+  border: 0;
+  border-radius: 5px;
+  background: none;
+  color: var(--ink-3);
+  cursor: pointer;
+}
+
+.fold:hover { background: none; color: var(--ink); }
+
+.fold .chev { transition: transform 0.15s ease; }
+
+.fold[aria-expanded="false"] .chev { transform: rotate(-90deg); }
+
+.lanes {
+  padding: 3px 0;
+  list-style: none;
+}
+
+.lane {
+  display: grid;
+  grid-template-columns: 7px minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 11px;
+  padding: 7px 14px;
+}
+
+.lane + .lane { border-top: 1px solid var(--line-soft); }
+
+.lane .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--off);
+}
+
+.lane .name {
+  min-width: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lane .st {
+  max-width: 150px;
+  font-size: 11.5px;
+  font-weight: 600;
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--ink-3);
+}
+
+/* Rôle à gauche, perf mesurée à droite, sur toute la largeur de la ligne. Si
+   les deux ne tiennent pas (taux d'échecs affiché), la perf passe dessous
+   plutôt que de tronquer le rôle. */
+.lane .meta {
+  grid-column: 2 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  column-gap: 10px;
+  min-width: 0;
+  margin-top: 1px;
+}
+
+.lane .meta small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  color: var(--ink-3);
+}
+
+.lane .meta .perf {
+  flex: none;
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+}
+
+.lane .meta em { font-style: normal; }
+.lane .meta em.hi { color: var(--warn); }
+
+.lane.ready .dot { background: var(--ok); }
+.lane.ready .st { color: var(--ok); }
+
+/* Occupée = saine et au travail : même vert, avec un halo. */
+.lane.busy .dot {
+  background: var(--ok);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 25%, transparent);
+}
+
+.lane.busy .st { color: var(--ink); }
+
+.lane.limit .dot { background: var(--bad); }
+.lane.limit .st { color: var(--bad); }
+.lane.err .dot { background: var(--warn); }
+.lane.err .st { color: var(--warn); }
+.lane.nokey .name,
+.lane.nokey .st { color: var(--ink-3); }
+
+/* Le modele qui juge. La couleur dit l'etat, comme partout : la lane garde la
+   couleur de SON statut (prete, occupee, en limite), on ne fait que la designer
+   — liseré a gauche. Les autres restent affichees telles quelles : la liste est
+   le tableau de bord de tous les modeles, plus un choix. */
+.lane.picked {
+  box-shadow: inset 2px 0 0 var(--ink);
+  background: var(--raised);
+}
+.lane.picked .name { color: var(--ink); font-weight: 600; }
+
+/* Un seul modele s'occupe du chat : la deroulante, au-dessus de la liste. */
+.pick {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 10px 14px;
+}
+
+.pick label {
+  flex: 1;
+  min-width: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.pick select {
+  flex: 0 1 auto;
+  max-width: 62%;
+}
+
+/* --- Mots bannis ---------------------------------------------------------- */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.field.words { margin: 12px 14px; }
+.field.last { margin-bottom: 0; }
+.field-label .count { margin-left: auto; }
+.keys { padding: 14px 14px 2px; }
+
+.field-label {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.words .field-label { flex-wrap: wrap; }
+
+.field-label label { cursor: pointer; }
+
+.field-label .sub {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--ink-3);
+}
+
+.field-label a {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--ink-3);
+  text-decoration: none;
+}
+
+.field-label a:hover {
+  color: var(--ink);
+  text-decoration: underline;
+}
+
+.field input { width: 100%; }
+
+/* --- Tableau -------------------------------------------------------------- */
+.board-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.board-card .board-link {
+  width: 100%;
+  margin: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.board-link {
+  display: flex;
+  width: 100%;
+  height: auto;
+  gap: 11px;
+  padding: 10px 12px 10px 14px;
+  border: 0;
+  text-align: left;
+  color: var(--ink-2);
+}
+
+.board-link:hover {
+  background: var(--raised);
+  color: var(--ink);
+}
+
+.board-link .txt {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.board-link .txt b {
+  font-size: 12.5px;
+  color: var(--ink);
+}
+
+.board-link .txt small {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--ink-3);
+  white-space: normal;
+  line-height: 1.35;
+}
+
+.board-link .go { transition: transform 0.12s ease; }
+.board-link:hover .go { transform: translateX(2px); }
+
+.board-quick-links {
+  display: flex;
+  gap: 4px;
+  padding: 8px 12px 10px;
+  flex-wrap: wrap;
+  border-top: 1px solid var(--line-soft);
+  background: var(--surface);
+}
+
+.board-quick-links .board-jump {
+  font-size: 11px;
+  padding: 2px 7px;
+  height: 24px;
+  cursor: pointer;
+}
+
+.board-quick-links #popupRepBadge.warn {
+  background: color-mix(in srgb, var(--warn) 18%, transparent);
+  color: var(--warn);
+}
+
+.board-quick-links #popupRepBadge {
+  font-size: 10px;
+  padding: 0 5px;
+  margin-left: 3px;
+  border-radius: 999px;
+  font-weight: 700;
+  vertical-align: middle;
+}
+
+/* --- Réglages avancés ----------------------------------------------------- */
+.advanced summary {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 10px 12px 10px 14px;
+  border-radius: var(--radius);
+  list-style: none;
+  cursor: pointer;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.advanced summary::-webkit-details-marker { display: none; }
+.advanced summary:hover { color: var(--ink); }
+
+.advanced summary small {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--ink-3);
+}
+
+.advanced summary .chev {
+  margin-left: auto;
+  transition: transform 0.15s ease;
+}
+
+.advanced[open] summary {
+  border-bottom: 1px solid var(--line);
+  border-radius: var(--radius) var(--radius) 0 0;
+}
+
+.advanced[open] summary .chev { transform: rotate(180deg); }
+
+.adv-body { padding: 14px 14px 12px; }
+
+.group { margin: 0 0 10px; }
+.group:not(:first-child) { margin-top: 16px; }
+
+.key-row {
+  display: flex;
+  gap: 6px;
+}
+
+.key-row input {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+.eye {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  flex: none;
+  color: var(--ink-3);
+}
+
+.eye .i-off,
+.eye.on .i-on { display: none; }
+.eye.on .i-off { display: block; }
+.eye.on { color: var(--ink); }
+
+.toggle.row.sync {
+  margin: 0 0 12px;
+  padding: 0;
+}
+
+.cloud-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.cloud-status {
+  flex: 1 1 100%;
+  min-width: 0;
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--ink-3);
+  overflow-wrap: anywhere;
+}
+
+.cloud-status.ok { color: var(--ok); }
+.cloud-status.bad { color: var(--bad); }
+
+.analyze [hidden] { display: none !important; }
+.analyze progress { width: 100%; height: 6px; margin: 10px 0 6px; accent-color: var(--ok); }
+.analyze .analyze-stop { width: 100%; margin: 6px 0; color: var(--bad); }
+.analyze .analyze-stop:disabled { opacity: 0.6; }

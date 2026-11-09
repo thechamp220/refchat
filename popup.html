@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Refchat</title>
+  <link rel="stylesheet" href="theme.css">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <svg class="sprite" aria-hidden="true">
+    <symbol id="i-eye" viewBox="0 0 16 16"><path d="M1.5 8s2.5-4.5 6.5-4.5S14.5 8 14.5 8s-2.5 4.5-6.5 4.5S1.5 8 1.5 8Z"/><circle cx="8" cy="8" r="2"/></symbol>
+    <symbol id="i-eye-off" viewBox="0 0 16 16"><path d="M2 2l12 12M6.7 6.7a2 2 0 0 0 2.6 2.6M4.2 4.3C2.6 5.5 1.5 8 1.5 8s2.5 4.5 6.5 4.5c1.4 0 2.6-.5 3.7-1.2M8 3.5c4 0 6.5 4.5 6.5 4.5a11.7 11.7 0 0 1-2.1 2.8"/></symbol>
+    <symbol id="i-chev" viewBox="0 0 16 16"><path d="M4.5 6.5 8 10l3.5-3.5"/></symbol>
+    <symbol id="i-go" viewBox="0 0 16 16"><path d="M6 3.5 10.5 8 6 12.5"/></symbol>
+    <symbol id="i-board" viewBox="0 0 16 16"><rect x="2" y="2.5" width="12" height="11" rx="2"/><path d="M2 6.5h12M6.5 6.5v7"/></symbol>
+  </svg>
+
+  <!-- L'en-tête et les onglets restent en haut : chaque onglet ne montre qu'un
+       sujet. L'accueil répond à « ça marche ? » ; les réglages vivent ailleurs. -->
+  <div class="top">
+    <header class="head">
+      <div class="brand">
+        <span class="mark">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path fill="#eceef1" d="M7 4h10a4 4 0 0 1 4 4v4.5a4 4 0 0 1-4 4h-5.3l-3.8 3.1c-.46.38-1.15.05-1.15-.55v-2.6A4 4 0 0 1 3 12.5V8a4 4 0 0 1 4-4z"/>
+            <rect x="6.2" y="7" width="8.1" height="1.7" rx=".85" fill="#16181d"/>
+            <rect x="6.2" y="10" width="11.5" height="2.6" rx="1.3" fill="#ff4d67"/>
+          </svg>
+          <span id="led" class="led off" title="État"></span>
+        </span>
+        <h1>Refchat</h1>
+        <span id="ver" class="ver"></span>
+      </div>
+      <label class="toggle master" title="Coupe la capture et le filtrage sur tous les chats">
+        <span>Filtre</span>
+        <input type="checkbox" id="enabled">
+        <span class="switch" aria-hidden="true"></span>
+      </label>
+    </header>
+
+    <nav class="tabs" role="tablist" aria-label="Sections">
+      <button type="button" class="tab on" role="tab" id="tabHome" data-tab="home" aria-controls="paneHome" aria-selected="true">Accueil</button>
+      <button type="button" class="tab" role="tab" id="tabChat" data-tab="chat" aria-controls="paneChat" aria-selected="false" tabindex="-1">Chat</button>
+      <button type="button" class="tab" role="tab" id="tabReplies" data-tab="replies" aria-controls="paneReplies" aria-selected="false" tabindex="-1">Réponses</button>
+      <button type="button" class="tab" role="tab" id="tabModels" data-tab="models" aria-controls="paneModels" aria-selected="false" tabindex="-1">Modèles</button>
+      <button type="button" class="tab" role="tab" id="tabMore" data-tab="more" aria-controls="paneMore" aria-selected="false" tabindex="-1">Avancé</button>
+    </nav>
+  </div>
+
+  <main class="panes">
+    <!-- ================= Accueil ================= -->
+    <section id="paneHome" class="pane on" role="tabpanel" aria-labelledby="tabHome">
+      <!-- Une phrase pour la pire panne, puis les trois maillons où elle peut
+           se loger. Lanes vertes + capture morte ne se confondent plus. -->
+      <section id="health" class="card health">
+        <p id="status" class="status">…</p>
+        <ol class="chain" aria-label="Chaîne de filtrage">
+          <li id="stepCap" class="step" title="Le chat de l’onglet actif est-il lu ?">
+            <i></i><span class="k">Capture</span><span class="v">…</span>
+          </li>
+          <li id="stepLlm" class="step" data-goto="models" title="Un modèle est-il disponible pour juger ? Clic : réglages des modèles.">
+            <i></i><span class="k">Modèle</span><span class="v">…</span>
+          </li>
+          <li id="stepOut" class="step" title="Les réponses du modèle sont-elles lisibles ? Un lot illisible n’est ni accepté ni rejeté.">
+            <i></i><span class="k">Réponses</span><span class="v">…</span>
+          </li>
+        </ol>
+      </section>
+
+      <section class="card tally" aria-label="Compteurs">
+        <div class="tally-top">
+          <div class="stat total" title="Messages enregistrés dans le journal.">
+            <span>Messages capturés</span>
+            <b id="nCaptured">0</b>
+          </div>
+          <p id="rejectRate" class="rate-note"></p>
+        </div>
+        <div id="split" class="split" aria-hidden="true"><i class="acc"></i><i class="wait"></i><i class="rej"></i></div>
+        <div class="tally-grid">
+          <div class="stat ok">
+            <span>Acceptés</span>
+            <b id="nAccepted">0</b>
+          </div>
+          <div class="stat bad" title="Verdicts défavorables.">
+            <span>Rejetés</span>
+            <b id="nRejected">0</b>
+          </div>
+          <div class="stat wait" title="Messages capturés encore à juger.">
+            <span>En attente</span>
+            <b id="nWaiting">0</b>
+          </div>
+          <div class="stat skip" title="Lignes qu’aucun modèle n’a pu juger : réponse illisible, tronquée ou timeout. Ni acceptées ni rejetées.">
+            <span>Ignorés</span>
+            <b id="nSkipped">0</b>
+          </div>
+        </div>
+      </section>
+
+      <section class="card analyze">
+        <button type="button" id="analyzeCaptured" class="analyze-btn" aria-describedby="analyzeStatus">Analyser les messages capturés</button>
+        <progress id="analyzeProgress" max="100" value="0" aria-label="Personnes analysées" hidden></progress>
+        <button type="button" id="stopAnalyze" class="btn small analyze-stop" hidden>Arrêter l’analyse</button>
+        <small id="analyzeStatus" role="status" aria-live="polite">L’analyse des captures démarre au clic.</small>
+
+        <div class="live" aria-label="IA en direct">
+          <div class="live-head">
+            <span class="toggle-text"><b>IA en direct</b><small>Juge les messages au fil du chat</small></span>
+            <select id="liveMode" aria-label="Mode IA en direct">
+              <option value="off">Arrêt</option>
+              <option value="on">On</option>
+            </select>
+          </div>
+          <p id="liveStatus" class="live-status" role="status">Analyse individuelle arrêtée.</p>
+        </div>
+      </section>
+
+      <div class="card board-card">
+        <button type="button" id="openBoard" class="board-link">
+          <svg class="ico" aria-hidden="true"><use href="#i-board"/></svg>
+          <span class="txt">
+            <b>Ouvrir le tableau</b>
+            <small>Mutés, journal, auteurs et signalements</small>
+          </span>
+          <svg class="ico go" aria-hidden="true"><use href="#i-go"/></svg>
+        </button>
+        <div class="board-quick-links" aria-label="Raccourcis vers le tableau">
+          <button type="button" class="btn small board-jump" data-tab="mutes">Mutés</button>
+          <button type="button" class="btn small board-jump" data-tab="log">Journal</button>
+          <button type="button" class="btn small board-jump" data-tab="chats">Chats</button>
+          <button type="button" class="btn small board-jump" data-tab="author">Auteur</button>
+          <button type="button" class="btn small board-jump" data-tab="report" id="jumpReportBtn">Signalements <span id="popupRepBadge" class="chip mute hidden">0</span></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= Chat ================= -->
+    <section id="paneChat" class="pane" role="tabpanel" aria-labelledby="tabChat" hidden>
+      <h2 class="group">Affichage</h2>
+      <section class="card options">
+        <label class="toggle row" title="Coupé, le chat reste tel quel : les mutes connus restent enregistrés mais rien n’est masqué.">
+          <span class="toggle-text">
+            <b>Masquer les mutés</b>
+            <small>Pseudo barré, message caché. Clic sur la puce pour revoir.</small>
+          </span>
+          <input type="checkbox" id="hideMuted">
+          <span class="switch" aria-hidden="true"></span>
+        </label>
+        <label class="toggle row" title="Retire aussi le pseudo : la ligne n’existe plus à l’écran.">
+          <span class="toggle-text">
+            <b>Cacher aussi le pseudo</b>
+            <small>La ligne disparaît entièrement.</small>
+          </span>
+          <input type="checkbox" id="blankMute">
+          <span class="switch" aria-hidden="true"></span>
+        </label>
+        <label class="toggle row" title="Floute les insultes et contenus sensibles à l’écran.">
+          <span class="toggle-text">
+            <b>Mode streamer</b>
+            <small>Floute les messages insultants (survol pour révéler).</small>
+          </span>
+          <input type="checkbox" id="streamerMode">
+          <span class="switch" aria-hidden="true"></span>
+        </label>
+        <label class="toggle row" title="Carillon discret à chaque nouveau mute.">
+          <span class="toggle-text">
+            <b>Alerte sonore</b>
+            <small>Carillon discret à chaque nouveau mute.</small>
+          </span>
+          <input type="checkbox" id="soundAlert">
+          <span class="switch" aria-hidden="true"></span>
+        </label>
+      </section>
+
+      <h2 class="group">Pause automatique</h2>
+      <section class="card section ambience" aria-label="Pause automatique du chat">
+        <label class="toggle row">
+          <span class="toggle-text"><b>Cacher le chat quand il dérape</b>
+            <small>Pause de 60 s si 60 % des messages récents sont négatifs.</small>
+          </span>
+          <input type="checkbox" id="ambiencePause">
+          <span class="switch" aria-hidden="true"></span>
+        </label>
+        <p id="ambienceStatus" class="live-status" role="status" title="Au moins 12 messages récents et 3 auteurs concernés. Réaffichage immédiat disponible dans le chat."></p>
+      </section>
+
+      <h2 class="group">Un pseudo</h2>
+      <section class="card options">
+        <div class="row quick-action-row">
+          <input id="quickMuteInput" type="text" aria-label="Pseudo à gérer" placeholder="Pseudo…" autocomplete="off" spellcheck="false">
+          <div class="quick-actions">
+            <button type="button" id="quickMuteBtn" class="btn small danger" title="Muter définitivement ce pseudo">Muter</button>
+            <button type="button" id="quickUnmuteBtn" class="btn small" title="Démuter ce pseudo">Démuter</button>
+            <button type="button" id="quickWhitelistBtn" class="btn small" title="Protéger ce pseudo contre tout mute">Protéger</button>
+            <button type="button" id="quickAuthorBtn" class="btn small" title="Ouvrir le dossier de cet auteur dans le tableau">Dossier</button>
+          </div>
+        </div>
+        <p id="quickMuteFeedback" class="row live-status hidden" role="status" aria-live="polite"></p>
+        <div class="row quick-summary">
+          <span class="toggle-text"><small id="quickMuteCount">0 pseudo muté</small><small id="quickWhitelistCount">0 protégé</small></span>
+          <div class="quick-copy">
+            <span class="sub">Copier</span>
+            <button type="button" id="copyMutesBtn" class="btn small" title="Copie la liste des pseudos mutés">Mutés</button>
+            <button type="button" id="copyWhitelistBtn" class="btn small" title="Copie la liste des pseudos protégés">Whitelist</button>
+          </div>
+        </div>
+      </section>
+
+      <h2 class="group">Mots bannis</h2>
+      <section class="card">
+        <div class="field words">
+          <div class="field-label">
+            <label for="extraWords">Séparés par des virgules</label>
+            <span id="extraWordsCount" class="sub count">0 mot</span>
+          </div>
+          <input id="extraWords" type="text" spellcheck="false" autocomplete="off" placeholder="ex : chokeur, tilting">
+        </div>
+      </section>
+    </section>
+
+    <!-- ================= Réponses ================= -->
+    <section id="paneReplies" class="pane" role="tabpanel" aria-labelledby="tabReplies" hidden>
+      <p class="pane-intro">Grok peut t’aider à répondre aux personnes qui te parlent dans le chat. Nécessite un compte SuperGrok.</p>
+
+      <h2 class="group">Brouillons</h2>
+      <section class="card options">
+        <label class="toggle row" title="Prépare un brouillon quand une réponse ou une mention te vise. Tu relis puis tu envoies toi-même.">
+          <span class="toggle-text">
+            <b>Proposer une réponse quand on me parle</b>
+            <small>Brouillon à relire dans le chat. Rien n’est envoyé sans toi.</small>
+          </span>
+          <input type="checkbox" id="replyAssistOn">
+          <span class="switch" aria-hidden="true"></span>
+        </label>
+        <label class="toggle row" title="Apprend la forme de tes messages : longueur, majuscules et ponctuation. Les répliques de Grok sont exclues.">
+          <span class="toggle-text">
+            <b>Apprendre ma façon d’écrire</b>
+            <small id="replyStyleStatus">Apprentissage désactivé.</small>
+          </span>
+          <input type="checkbox" id="replyStyleOn">
+          <span class="switch" aria-hidden="true"></span>
+        </label>
+      </section>
+
+      <h2 class="group">Envoi automatique</h2>
+      <section class="card options">
+        <div class="row auto-reply-start">
+          <span class="toggle-text">
+            <b>Répondre à une personne</b>
+            <small>Grok répond à sa place quand elle te parle, jusqu’à « Arrêter ».</small>
+          </span>
+          <input id="autoReplyNick" type="text" aria-label="Pseudo pour la réponse automatique" placeholder="Pseudo…" autocomplete="off" spellcheck="false" maxlength="25">
+          <button id="autoReplyStart" type="button" class="btn small">Activer</button>
+          <small id="autoReplyFeedback" role="status" aria-live="polite"></small>
+        </div>
+        <div class="hand row" title="Bouton G à côté de la flèche Répondre : Grok répond à ce message. « Grok lui répond » sur la carte d’un viewer : Grok répond à tout ce qu’il t’adresse.">
+          <span class="toggle-text">
+            <b>Conversations confiées à Grok</b>
+          </span>
+          <div id="handList" class="live-events"></div>
+          <button type="button" id="handStopAll" class="btn small" hidden>Tout arrêter</button>
+          <p id="baitStatus" class="live-status">Personne.</p>
+        </div>
+      </section>
+      <p class="pane-note">Sur un sujet politique, Grok se limite à une information neutre ou à une demande de précision. Les brouillons ont priorité sur l’envoi automatique.</p>
+    </section>
+
+    <!-- ================= Modèles ================= -->
+    <section id="paneModels" class="pane" role="tabpanel" aria-labelledby="tabModels" hidden>
+      <h2 class="group">Modèle qui juge</h2>
+      <section class="card">
+        <div class="pick">
+          <label for="laneSel">Modèle actif</label>
+          <select id="laneSel" aria-label="Modèle actif"></select>
+        </div>
+        <div class="lane-foot">
+          <span id="laneSum"></span>
+          <button id="lanesToggle" class="fold" type="button" aria-expanded="false" title="Afficher l’état de tous les modèles">
+            <span>Tous les modèles</span>
+            <svg class="ico chev" aria-hidden="true"><use href="#i-chev"/></svg>
+          </button>
+        </div>
+        <ul id="lanes" class="lanes" hidden></ul>
+      </section>
+
+      <h2 class="group">Compte SuperGrok</h2>
+      <section class="card section">
+        <span class="toggle-text">
+          <b>Connexion sans clé API</b>
+          <small id="xaiOAuthStatus">Sans clé ni abonnement : analyse locale (mots bannis &amp; dictionnaire)</small>
+        </span>
+        <div class="account-actions">
+          <button id="xaiOAuthBtn" type="button" class="btn small">Se connecter avec SuperGrok</button>
+          <button id="xaiOAuthLogout" type="button" class="btn small danger" style="display:none">Déconnecter</button>
+        </div>
+        <a id="xaiOAuthLink" href="#" target="_blank" rel="noopener" class="sub" style="display:none"></a>
+      </section>
+
+      <h2 class="group">Clés API</h2>
+      <section class="card keys">
+        <div class="field">
+          <div class="field-label">
+            <label for="googleKey">Google AI Studio <span class="sub">gratuit</span></label>
+            <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Obtenir ↗</a>
+          </div>
+          <div class="key-row">
+            <input id="googleKey" type="password" spellcheck="false" autocomplete="off" placeholder="AIzaSy…">
+            <button id="googleKeyEye" class="btn icon eye" type="button" title="Afficher la clé" aria-label="Afficher la clé">
+              <svg class="ico i-on" aria-hidden="true"><use href="#i-eye"/></svg>
+              <svg class="ico i-off" aria-hidden="true"><use href="#i-eye-off"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="field">
+          <div class="field-label">
+            <label for="glmKey">Z.ai · GLM <span class="sub">gratuit</span></label>
+            <a href="https://open.bigmodel.cn/" target="_blank" rel="noopener">Obtenir ↗</a>
+          </div>
+          <div class="key-row">
+            <input id="glmKey" type="password" spellcheck="false" autocomplete="off" placeholder="Clé API Z.ai…">
+            <button id="glmKeyEye" class="btn icon eye" type="button" title="Afficher la clé" aria-label="Afficher la clé">
+              <svg class="ico i-on" aria-hidden="true"><use href="#i-eye"/></svg>
+              <svg class="ico i-off" aria-hidden="true"><use href="#i-eye-off"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="field">
+          <div class="field-label">
+            <label for="goKey">OpenCode Go <span class="sub">abonnement</span></label>
+            <a href="https://opencode.ai/auth" target="_blank" rel="noopener">Obtenir ↗</a>
+          </div>
+          <div class="key-row">
+            <input id="goKey" type="password" spellcheck="false" autocomplete="off" placeholder="Clé API OpenCode Go…">
+            <button id="goKeyEye" class="btn icon eye" type="button" title="Afficher la clé" aria-label="Afficher la clé">
+              <svg class="ico i-on" aria-hidden="true"><use href="#i-eye"/></svg>
+              <svg class="ico i-off" aria-hidden="true"><use href="#i-eye-off"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="field">
+          <div class="field-label">
+            <label for="xaiKey">xAI <span class="sub">à la place de SuperGrok</span></label>
+            <a href="https://console.x.ai/" target="_blank" rel="noopener">Console ↗</a>
+          </div>
+          <div class="key-row">
+            <input id="xaiKey" type="password" spellcheck="false" autocomplete="off" placeholder="xai-…">
+            <button id="xaiKeyEye" class="btn icon eye" type="button" title="Afficher la clé" aria-label="Afficher la clé">
+              <svg class="ico i-on" aria-hidden="true"><use href="#i-eye"/></svg>
+              <svg class="ico i-off" aria-hidden="true"><use href="#i-eye-off"/></svg>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <details class="card advanced">
+        <summary>
+          <span>API compatible OpenAI</span>
+          <small>OpenRouter, Ollama…</small>
+          <svg class="ico chev" aria-hidden="true"><use href="#i-chev"/></svg>
+        </summary>
+        <div class="adv-body">
+          <div class="field">
+            <label class="field-label" for="customUrl">URL de l’endpoint <span class="sub">/chat/completions</span></label>
+            <input id="customUrl" type="url" spellcheck="false" autocomplete="off" placeholder="https://openrouter.ai/api/v1/chat/completions">
+          </div>
+          <div class="field">
+            <label class="field-label" for="customModel">Identifiant du modèle</label>
+            <input id="customModel" type="text" spellcheck="false" autocomplete="off" placeholder="ex : meta-llama/llama-3.3-70b-instruct">
+          </div>
+          <div class="field last">
+            <label class="field-label" for="customKey">Clé API <span class="sub">vide pour Ollama en local</span></label>
+            <div class="key-row">
+              <input id="customKey" type="password" spellcheck="false" autocomplete="off" placeholder="sk-…">
+              <button id="customKeyEye" class="btn icon eye" type="button" title="Afficher la clé" aria-label="Afficher la clé">
+                <svg class="ico i-on" aria-hidden="true"><use href="#i-eye"/></svg>
+                <svg class="ico i-off" aria-hidden="true"><use href="#i-eye-off"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </details>
+      <p class="pane-note">Les clés restent dans ce navigateur. Sans clé ni compte, Refchat utilise l’analyse locale.</p>
+    </section>
+
+    <!-- ================= Avancé ================= -->
+    <section id="paneMore" class="pane" role="tabpanel" aria-labelledby="tabMore" hidden>
+      <p class="pane-intro">Optionnel : rien ici n’est nécessaire pour filtrer un chat.</p>
+
+      <h2 class="group">Synchronisation</h2>
+      <section class="card section">
+        <label class="toggle row sync" title="Envoie le journal, les mutés et les réglages vers ton serveur.">
+          <span class="toggle-text">
+            <b>Synchroniser avec mon serveur</b>
+            <small>Journal, mutés et réglages. Les clés API ne partent jamais.</small>
+          </span>
+          <input type="checkbox" id="cloudOn">
+          <span class="switch" aria-hidden="true"></span>
+        </label>
+
+        <div class="field">
+          <label class="field-label" for="cloudUrl">URL du serveur</label>
+          <input id="cloudUrl" type="url" spellcheck="false" autocomplete="off" placeholder="https://vps.exemple:8787">
+        </div>
+
+        <div class="field">
+          <label class="field-label" for="cloudToken">Jeton <span class="sub">CSG_TOKEN</span></label>
+          <div class="key-row">
+            <input id="cloudToken" type="password" spellcheck="false" autocomplete="off" placeholder="16+ caractères">
+            <button type="button" id="cloudTokenEye" class="btn icon eye" title="Afficher le jeton" aria-label="Afficher le jeton">
+              <svg class="ico i-on" aria-hidden="true"><use href="#i-eye"/></svg>
+              <svg class="ico i-off" aria-hidden="true"><use href="#i-eye-off"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="cloud-foot">
+          <p id="cloudStatus" class="cloud-status">Sync coupée</p>
+          <button type="button" id="cloudPush">Envoyer</button>
+          <button type="button" id="cloudPull">Récupérer</button>
+        </div>
+      </section>
+
+      <h2 class="group">Relais local Codex</h2>
+      <section class="card section">
+        <label class="toggle row sync" title="Copie uniquement les messages en attente vers un relais local sur cet appareil.">
+          <span class="toggle-text">
+            <b>Analyse planifiée par Codex</b>
+            <small>Messages en attente seulement, toutes les 5 min.</small>
+          </span>
+          <input type="checkbox" id="codexBridgeOn">
+          <span class="switch" aria-hidden="true"></span>
+        </label>
+        <div class="field">
+          <label class="field-label" for="codexBridgeToken">Jeton du relais local</label>
+          <div class="key-row">
+            <input id="codexBridgeToken" type="password" spellcheck="false" autocomplete="off" placeholder="16+ caractères">
+            <button type="button" id="codexBridgeTokenEye" class="btn icon eye" title="Afficher le jeton" aria-label="Afficher le jeton">
+              <svg class="ico i-on" aria-hidden="true"><use href="#i-eye"/></svg>
+              <svg class="ico i-off" aria-hidden="true"><use href="#i-eye-off"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="cloud-foot">
+          <p id="codexBridgeStatus" class="cloud-status">Relais local désactivé</p>
+          <button type="button" id="codexBridgePush">Envoyer maintenant</button>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script src="cloud.js"></script>
+  <script src="popup.js"></script>
+  <script src="popup-tabs.js"></script>
+</body>
+</html>

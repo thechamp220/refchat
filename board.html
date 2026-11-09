@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Refchat — Tableau</title>
+  <link rel="icon" href="icons/icon48.png">
+  <link rel="stylesheet" href="theme.css">
+  <link rel="stylesheet" href="board.css">
+</head>
+<body>
+  <header class="top">
+    <div class="top-in">
+      <div class="topline">
+        <div class="brand">
+          <span class="mark">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path fill="#eceef1" d="M7 4h10a4 4 0 0 1 4 4v4.5a4 4 0 0 1-4 4h-5.3l-3.8 3.1c-.46.38-1.15.05-1.15-.55v-2.6A4 4 0 0 1 3 12.5V8a4 4 0 0 1 4-4z"/>
+              <rect x="6.2" y="7" width="8.1" height="1.7" rx=".85" fill="#16181d"/>
+              <rect x="6.2" y="10" width="11.5" height="2.6" rx="1.3" fill="#ff4d67"/>
+            </svg>
+          </span>
+          <h1>Refchat <span>Tableau</span></h1>
+        </div>
+        <div class="topline-pills">
+          <button type="button" class="pill" id="moodPill" title="Baromètre d'ambiance et tension du chat en direct [U]"><i></i><span>Ambiance <b>🟢 100%</b></span></button>
+          <button type="button" class="pill" id="sessionPill" title="Bilan de la session live en cours (durée, volume, taux de rejet, récidivistes) [L]"><i></i><span>Session <b>0m</b></span></button>
+          <details class="menu tools">
+            <summary class="menu-btn">Outils <svg class="ico chev" viewBox="0 0 16 16" aria-hidden="true"><path d="M4.5 6.5 8 10l3.5-3.5"/></svg></summary>
+            <div class="menu-pop">
+              <button type="button" class="pill" id="presetPill" title="Profil de modération live (Standard, Chill, Compétitif, Bouclier Raid) [O]"><i></i><span>Profil <b>⚖️ Standard</b></span><kbd>O</kbd></button>
+              <button type="button" class="pill" id="regexPill" title="Règles de filtrage regex et motifs avancés [X]"><i></i><span>Règles de filtrage</span><kbd>X</kbd></button>
+              <button type="button" class="pill" id="macrosPill" title="Modèles de sanctions et macros de modération [K]"><i></i><span>Macros de modération</span><kbd>K</kbd></button>
+              <button type="button" class="pill" id="auditPill" title="Journal d'audit et historique des actions de modération [H]"><i></i><span>Historique <b id="auditPillCount">0</b></span><kbd>H</kbd></button>
+              <hr>
+              <button type="button" class="pill" id="privacyPill" title="Mode Streamer : floute les insultes et contenus sensibles à l'écran [P]"><i></i><span>Mode Streamer</span><kbd>P</kbd></button>
+              <button type="button" class="pill" id="soundPill" title="Alerte sonore discrète lors des détections critiques"><i></i><span>Son coupé</span></button>
+              <button type="button" class="pill" id="diskPill" title="Archive disque"><i></i><span>Disque…</span></button>
+              <hr>
+              <button type="button" class="pill" id="backupPill" title="Sauvegarder ou restaurer la configuration Refchat (whitelist, mots bannis, réglages, mémos) [C]"><i></i><span>Sauvegarde et restauration</span><kbd>C</kbd></button>
+              <button type="button" class="pill" id="helpPill" title="Raccourcis clavier et astuces [?]"><i></i><span>Aide et raccourcis</span><kbd>?</kbd></button>
+            </div>
+          </details>
+        </div>
+      </div>
+      <nav class="tabs" role="tablist">
+        <button type="button" class="tab on" data-tab="mutes" title="Raccourci : 1">Mutés <em id="cMutes">0</em></button>
+        <button type="button" class="tab" data-tab="log" title="Raccourci : 2">Journal <em id="cLog">0</em></button>
+        <button type="button" class="tab" data-tab="chats" title="Raccourci : 3">Par chat</button>
+        <button type="button" class="tab" data-tab="author" title="Raccourci : 4">Auteur</button>
+        <button type="button" class="tab" data-tab="report" title="Raccourci : 5">Signalements <em id="cReportsTab" class="hidden">0</em></button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section id="tab-mutes" class="pane on">
+      <div class="kpis">
+        <div class="kpi"><span>Mutés</span><b id="kTotal">0</b><small id="kTotalSub">&nbsp;</small></div>
+        <div class="kpi"><span>Dernières 24 h</span><b id="kDay">0</b><small id="kDaySub">&nbsp;</small></div>
+        <div class="kpi"><span>Permanents</span><b id="kPerm">0</b><small id="kPermSub">&nbsp;</small></div>
+        <div class="kpi"><span>Indice moyen</span><b id="kScore">—</b><small>valeur interne du filtre, sur 100</small></div>
+      </div>
+
+      <div class="panels">
+        <div class="panel wide">
+          <h3>Mutes par jour <small>14 derniers jours</small></h3>
+          <div id="muteDays" class="cols"></div>
+        </div>
+        <div class="panel">
+          <h3>Par raison <small>clique pour filtrer</small></h3>
+          <div id="muteKinds" class="hbars"></div>
+        </div>
+        <div class="panel">
+          <h3>Par chat <small>clique pour filtrer</small></h3>
+          <div id="muteChans" class="hbars"></div>
+        </div>
+      </div>
+
+      <div class="bar">
+        <input id="muteSearch" class="search" type="text" placeholder="Filtrer pseudo ou motif… [/]" spellcheck="false" autocomplete="off">
+        <select id="mutePlatform" title="Filtrer par plateforme">
+          <option value="">toutes les plateformes</option>
+          <option value="twitch">Twitch</option>
+          <option value="kick">Kick</option>
+        </select>
+        <select id="muteChan"><option value="">tous les chats</option></select>
+        <select id="muteKind">
+          <option value="">toutes les raisons</option>
+          <option value="ia">modèle IA</option>
+          <option value="local">liste locale</option>
+          <option value="suivi">suivi auteur</option>
+          <option value="pol">politique</option>
+          <option value="autre">autre</option>
+        </select>
+        <select id="muteSort" title="Trier les mutés">
+          <option value="date">Plus récents</option>
+          <option value="score">Indice le plus élevé</option>
+          <option value="name">Pseudo (A-Z)</option>
+        </select>
+        <select id="muteTime" title="Filtrer par période de sanction">
+          <option value="">toutes les dates</option>
+          <option value="1h">dernière heure</option>
+          <option value="24h">dernières 24 h</option>
+          <option value="7d">7 derniers jours</option>
+          <option value="30d">30 derniers jours</option>
+        <label class="check"><input id="mutePerm" type="checkbox"> permanents</label>
+        <label class="check"><input id="muteNoted" type="checkbox"> avec note</label>
+        <span id="muteCount" class="meta inline"></span>
+        <span class="grow"></span>
+        <button type="button" id="addMuteBtn" title="Ajouter manuellement un pseudo à la liste des mutés">Muter un pseudo…</button>
+        <button type="button" id="auditAll" class="primary" title="Analyse au clic toutes les captures encore en attente. Aucun jugement pendant le live.">Analyser les messages capturés</button>
+        <button type="button" id="auditAllStop" class="hidden">Arrêter</button>
+        <details class="menu">
+          <summary class="menu-btn">Plus <svg class="ico chev" viewBox="0 0 16 16" aria-hidden="true"><path d="M4.5 6.5 8 10l3.5-3.5"/></svg></summary>
+          <div class="menu-pop">
+            <button type="button" id="whitelistBtn" title="Consulter et gérer la liste des auteurs protégés contre les mutes">Whitelist…</button>
+            <button type="button" id="wordsBtn" title="Consulter et modifier les mots bannis au clic">Mots bannis…</button>
+            <hr>
+            <button type="button" id="copyMuteNames" title="Copier tous les pseudos mutés filtrés dans le presse-papier">Copier les pseudos</button>
+            <button type="button" id="exportMutes" title="Exporter la liste des auteurs actuellement mutés au format CSV">Exporter mutés</button>
+            <button type="button" id="exportMutesJson" title="Exporter la liste des auteurs actuellement mutés au format JSON">Exporter JSON</button>
+            <hr>
+            <button type="button" id="clearMutes" class="danger">Réhabiliter tout</button>
+          </div>
+        </details>
+      </div>
+  <div id="bulkBox" class="audit hidden" role="status" aria-live="polite"></div>
+      <div id="liveMutesBox" class="tablewrap live-mutes hidden">
+        <h3>Mutes temporaires IA <small>visibles ici uniquement pendant le pilote direct</small></h3>
+        <p id="liveMuteError" class="meta hidden" role="alert"></p>
+        <table>
+          <thead><tr><th>Pseudo</th><th>Chat</th><th>Raison</th><th>Fin prévue</th><th></th></tr></thead>
+          <tbody id="liveMuteRows"></tbody>
+        </table>
+      </div>
+      <div class="tablewrap">
+        <table>
+          <thead>
+            <tr><th>Pseudo</th><th>Raison</th><th>Chat</th><th title="Valeur interne du filtre, pas une probabilité de confiance">Indice</th><th>Quand</th><th></th></tr>
+          </thead>
+          <tbody id="muteRows"></tbody>
+        </table>
+        <p id="muteEmpty" class="empty">Personne muté.</p>
+        <button type="button" id="muteMore" class="more hidden">Afficher plus</button>
+      </div>
+      <div id="tip" class="tip hidden" role="tooltip"></div>
+      <dialog id="muteModal" class="modal">
+        <form id="muteModalForm" method="dialog" class="modal-box">
+          <div class="modal-header">
+            <h3>Muter manuellement un pseudo</h3>
+            <button type="button" id="muteModalClose" class="ghost modal-close" title="Fermer" aria-label="Fermer">&times;</button>
+          </div>
+          <div class="modal-body">
+            <p id="muteModalErr" class="meta bad hidden" role="alert"></p>
+            <label class="modal-field">Pseudo à muter
+              <input id="muteModalAuthor" type="text" placeholder="ex: troll123" required autocomplete="off" spellcheck="false">
+            </label>
+            <label class="modal-field">Chat concerné
+              <select id="muteModalChan"><option value="">Tous les chats</option></select>
+            </label>
+            <label class="modal-field">Motif / Raison
+              <input id="muteModalReason" type="text" value="manuel" placeholder="ex: manuel, spam, insulte">
+            </label>
+            <div id="muteModalPresets" class="mute-presets" style="display:flex; gap:5px; flex-wrap:wrap; margin:-4px 0 8px;">
+              <button type="button" class="preset-btn" data-reason="spam">spam</button>
+              <button type="button" class="preset-btn" data-reason="insulte">insulte</button>
+              <button type="button" class="preset-btn" data-reason="troll">troll</button>
+              <button type="button" class="preset-btn" data-reason="backseat">backseat</button>
+              <button type="button" class="preset-btn" data-reason="pub">pub</button>
+              <button type="button" class="preset-btn" data-reason="haine">haine</button>
+            </div>
+            <label class="modal-field">Note modérateur <span class="meta inline" style="font-size:10.5px;">(mémo persistant, optionnel)</span>
+              <input id="muteModalNote" type="text" placeholder="ex: averti 2 fois en vocal, alt de...">
+            </label>
+            <label class="check modal-check">
+              <input id="muteModalPerm" type="checkbox" checked> Mute permanent (protégé contre la réhabilitation auto)
+            </label>
+          </div>
+          <div class="modal-actions">
+            <button type="button" id="muteModalCancel" class="ghost">Annuler</button>
+            <button type="button" id="muteModalWhitelist" class="ghost" style="color:var(--ok);" title="Ajouter ce pseudo à la whitelist (protégé)">Protéger</button>
+            <button type="submit" id="muteModalSubmit" class="danger">Muter</button>
+          </div>
+        </form>
+      </dialog>
+    </section>
+
+    <section id="tab-report" class="pane">
+      <span id="cReports" class="hidden">0</span>
+      <p class="intro">
+        Les attaques graves repérées en direct — souhaits de mort ou de mal, appel au harcèlement,
+        menaces, doxx, incitation au suicide et haine ciblée — s'empilent ici, un dossier par auteur et par chat.
+        Un score élevé ou une simple insulte ne suffit pas. Les cas ambigus peuvent être ajoutés manuellement.
+        <b>Rien ne part tout seul</b> : Twitch n'a pas d'API de signalement, tu relis le dossier,
+        tu le copies et tu le colles toi-même dans
+        <a href="https://help.twitch.tv/s/twitch-user-report" target="_blank" rel="noreferrer noopener">le formulaire officiel</a>.
+        <b>Analyser</b> envoie les preuves au modèle choisi — pour écarter un faux positif avant de coller. Un auteur réglé passe
+        « fait » ; les faits sont masqués tant que la case est décochée.
+      </p>
+      <div class="bar">
+        <input id="repSearch" class="search" type="text" placeholder="Filtrer pseudo ou mot-clé… [/]" spellcheck="false" autocomplete="off">
+        <select id="repPlatform" title="Filtrer par plateforme">
+          <option value="">toutes les plateformes</option>
+          <option value="twitch">Twitch</option>
+          <option value="kick">Kick</option>
+        </select>
+        <select id="repChan"><option value="">Tous les chats</option></select>
+        <select id="repVerdict" title="Filtrer par statut IA">
+          <option value="">tous les statuts IA</option>
+          <option value="report">🔴 à signaler (confirmé)</option>
+          <option value="fp">🟢 faux positif</option>
+          <option value="none">⏳ non audité</option>
+        </select>
+        <label class="check"><input id="repDone" type="checkbox"> afficher les faits</label>
+        <span id="repCount" class="meta inline"></span>
+        <span class="grow"></span>
+        <button type="button" id="repAudit" title="Le modèle choisi relit les dossiers visibles. Manuel, jusqu’à 2 min par dossier. Ne signale rien tout seul.">Réanalyser</button>
+        <button type="button" id="repAddManual" title="Ajouter manuellement un auteur aux signalements (recherche ses messages rejetés en mémoire)">+ Ajouter</button>
+        <details class="menu">
+          <summary class="menu-btn">Plus <svg class="ico chev" viewBox="0 0 16 16" aria-hidden="true"><path d="M4.5 6.5 8 10l3.5-3.5"/></svg></summary>
+          <div class="menu-pop">
+            <button type="button" id="repCopyNames" title="Copie uniquement la liste des pseudos des dossiers visibles (un par ligne) pour modération rapide.">Copier pseudos</button>
+            <button type="button" id="repCopyAll" title="Colle tous les dossiers non faits, séparés par un trait.">Tout copier</button>
+            <button type="button" id="repMarkAllDone" title="Marque tous les dossiers visibles non faits comme faits">Tout marquer fait</button>
+            <hr>
+            <button type="button" id="repExportCsv" title="Exporter tous les dossiers visibles au format CSV (compatible Excel, Numbers, Sheets)">Exporter CSV</button>
+            <button type="button" id="repExportJson" title="Exporter tous les dossiers visibles au format JSON">Exporter JSON</button>
+            <hr>
+            <button type="button" id="repClear" class="danger">Vider</button>
+          </div>
+        </details>
+      </div>
+      <div id="repCards" class="cards rep-cards"></div>
+      <p id="repEmpty" class="empty">Aucun cas extrême en attente.</p>
+    </section>
+
+    <section id="tab-log" class="pane">
+      <div class="bar">
+        <input id="logSearch" class="search" type="text" placeholder="Texte ou pseudo… [/]" spellcheck="false" autocomplete="off">
+        <select id="logPlatform" title="Filtrer par plateforme">
+          <option value="">toutes les plateformes</option>
+          <option value="twitch">Twitch</option>
+          <option value="kick">Kick</option>
+        </select>
+        <select id="logChan"><option value="">tous les chats</option></select>
+        <select id="logLabel">
+          <option value="">tous les verdicts</option>
+          <option value="mute">rejetés</option>
+          <option value="keep">acceptés</option>
+          <option value="review">signalés Codex</option>
+          <option value="pending">en attente</option>
+          <option value="skip">ignorés</option>
+          <option value="dropped">abandonnés</option>
+          <option value="politique">politique</option>
+        </select>
+        <select id="logTime" title="Filtrer par période">
+          <option value="">toutes les heures</option>
+          <option value="15m">15 dernières min</option>
+          <option value="1h">dernière heure</option>
+          <option value="24h">dernières 24 h</option>
+        </select>
+        <button type="button" id="logReset" title="Réinitialiser tous les filtres du journal">Réinitialiser</button>
+        <span class="grow"></span>
+        <details class="menu">
+          <summary class="menu-btn">Exporter <svg class="ico chev" viewBox="0 0 16 16" aria-hidden="true"><path d="M4.5 6.5 8 10l3.5-3.5"/></svg></summary>
+          <div class="menu-pop">
+            <button type="button" id="exportCsv" title="Télécharge le journal au format CSV (compatible Excel, Numbers, Sheets)">Exporter CSV</button>
+            <button type="button" id="exportFiltered" title="Télécharge uniquement les messages qui correspondent aux filtres actuels au format CSV">Exporter sélection</button>
+            <button type="button" id="exportFt" title="Télécharge l'archive complète des messages au format JSONL">Exporter JSONL</button>
+            <button type="button" id="exportBeh">Logs techniques</button>
+            <hr>
+            <button type="button" id="clearFt" class="danger">Vider</button>
+          </div>
+        </details>
+      </div>
+      <div class="log-presets" id="logPresets" role="toolbar" aria-label="Filtres rapides">
+        <span class="meta inline">Filtres rapides :</span>
+        <button type="button" class="preset-btn on" data-preset="all">Tous</button>
+        <button type="button" class="preset-btn" data-preset="mute">🔴 Rejetés</button>
+        <button type="button" class="preset-btn" data-preset="review">⚠️ Signalés</button>
+        <button type="button" class="preset-btn" data-preset="pol">🛡️ Politique</button>
+        <button type="button" class="preset-btn" data-preset="15m">⏳ 15 min</button>
+        <button type="button" class="preset-btn" data-preset="1h">⏱️ 1 heure</button>
+        <span id="logStats" class="meta inline log-stats"></span>
+      </div>
+      <div class="log-nav" aria-label="Navigation du journal">
+        <p id="logMeta" class="meta" role="status"></p>
+        <label class="check"><span class="live-dot" id="logLiveDot" title="Flux en direct actif" aria-hidden="true"></span><input id="logAutoRefresh" type="checkbox" checked> Actualiser en direct</label>
+        <div class="log-pages">
+          <button type="button" id="logJumpLive" class="jump-live hidden" title="Revenir directement à la première page et réactiver le direct">⚡ Revenir au direct</button>
+          <button type="button" id="logNewer" aria-controls="logRows">Plus récents</button>
+          <span id="logPage" class="meta"></span>
+          <button type="button" id="logOlder" aria-controls="logRows">Plus anciens</button>
+        </div>
+      </div>
+      <div class="tablewrap">
+        <table>
+          <thead>
+            <tr><th>Heure</th><th>Chat</th><th>Auteur</th><th>Message</th><th>Verdict</th><th>Source</th></tr>
+          </thead>
+          <tbody id="logRows"></tbody>
+        </table>
+        <p id="logEmpty" class="empty">Journal vide.</p>
+      </div>
+    </section>
+
+    <section id="tab-skips" class="pane" hidden aria-hidden="true">
+      <span id="cSkips" class="hidden">0</span>
+      <p class="intro">
+        Lots dont la réponse du modèle n'a pas pu être lue. Ces messages n'ont été jugés
+        par personne — ce n'est pas la même chose qu'« accepté ».
+        Aucune reprise automatique n'appelle un modèle. Un prochain clic sur
+        « Analyser les messages capturés » réessaie les lignes restées en attente.
+        <b>finish</b> dit pourquoi un ancien lot a échoué : <code>length</code> ou
+        <code>incomplete:max_output_tokens</code> = réponse coupée ;
+        taille 0 = le raisonnement a tout mangé.
+      </p>
+      <div class="bar">
+        <span id="skipRescueMeta" class="meta inline"></span>
+        <span class="grow"></span>
+        <button type="button" id="copySkips">Copier</button>
+      </div>
+      <div id="skipRescueBox" class="audit hidden"></div>
+      <div class="tablewrap">
+        <table>
+          <thead>
+            <tr><th>Heure</th><th>Modèle</th><th>Msgs</th><th>finish</th><th>Taille</th><th>Réponse brute</th></tr>
+          </thead>
+          <tbody id="skipRows"></tbody>
+        </table>
+        <p id="skipEmpty" class="empty">Aucun lot illisible enregistré.</p>
+      </div>
+    </section>
+
+    <section id="tab-chats" class="pane">
+      <div class="bar">
+        <input id="chatSearch" class="search" type="text" placeholder="Filtrer les chats… [/]" spellcheck="false" autocomplete="off">
+        <select id="chatPlatform" title="Filtrer par plateforme">
+          <option value="">toutes les plateformes</option>
+          <option value="twitch">Twitch</option>
+          <option value="kick">Kick</option>
+        </select>
+        <select id="chatMinRate" title="Filtrer par taux de rejet minimum">
+          <option value="0">tous les taux de rejet</option>
+          <option value="5">≥ 5 % rejet</option>
+          <option value="10">≥ 10 % rejet (tension)</option>
+          <option value="20">≥ 20 % rejet (toxique)</option>
+        </select>
+        <select id="chatSort" title="Trier les cartes de chat">
+          <option value="total">Plus actifs (messages)</option>
+          <option value="rate">Plus fort taux de rejet</option>
+          <option value="name">Nom de chaîne (A-Z)</option>
+        </select>
+        <span id="chatCount" class="meta inline"></span>
+        <span class="grow"></span>
+        <button type="button" id="copyAllChanNames" title="Copier la liste des chaînes affichées dans le presse-papiers">Copier les chaînes</button>
+      </div>
+      <p class="intro">Chaque message porte la plateforme et la chaîne d'où il vient. Un chat qui rejette beaucoup mérite un seuil plus bas ou des mots bannis dédiés.</p>
+      <div id="chatCards" class="cards"></div>
+    </section>
+
+    <section id="tab-author" class="pane">
+      <div class="bar">
+        <input id="authorQuery" class="search" type="text" placeholder="Pseudo… [/]" spellcheck="false" autocomplete="off">
+        <button type="button" id="authorLookup">Voir</button>
+        <button type="button" id="authorRecheck" title="Analyse rapide sur la fenêtre glissante (60 messages)">Relire l’historique</button>
+        <button type="button" id="authorAudit" title="Relit tout l'historique capturé de cet auteur. Lent : jusqu'à 2 min.">Audit complet</button>
+        <details class="menu">
+          <summary class="menu-btn">Plus <svg class="ico chev" viewBox="0 0 16 16" aria-hidden="true"><path d="M4.5 6.5 8 10l3.5-3.5"/></svg></summary>
+          <div class="menu-pop">
+            <button type="button" id="authorCopyName" title="Copier le nom d’utilisateur seul">Copier le pseudo</button>
+            <button type="button" id="authorCopyHistory" title="Copier tous les messages récents affichés de cet auteur">Copier l’historique</button>
+            <button type="button" id="authorCopySummary" title="Copier la fiche récapitulative complète (statut, notes mémo, signalements et messages récents) pour transmission rapide (Discord, modération)">Copier la fiche</button>
+            <hr>
+            <button type="button" id="authorInLog" title="Chercher tous les messages de cet auteur dans le journal">Voir dans le journal</button>
+            <hr>
+            <button type="button" id="authorExportCsv" title="Exporter l'historique affiché de cet auteur au format CSV (compatible Excel, Numbers, Sheets)">Exporter CSV</button>
+            <button type="button" id="authorExportJson" title="Télécharger le dossier complet de cet auteur au format JSON (métadonnées, mémos, signalements et historique)">Exporter JSON</button>
+          </div>
+        </details>
+        <button type="button" id="authorMute" class="danger hidden" title="Muter cet auteur">Muter</button>
+        <button type="button" id="authorUnmute" class="hidden">Démuter</button>
+        <button type="button" id="authorWhitelist" class="hidden" title="Ajouter ou retirer cet auteur de la whitelist">Whitelister</button>
+        <button type="button" id="authorReportBtn" class="hidden" style="color:var(--warn);" title="Ouvrir le dossier de signalement de cet auteur">Dossier signalement</button>
+        <a id="authorProfileTwitch" class="btn small hidden" target="_blank" rel="noopener noreferrer" title="Ouvrir le profil Twitch de cet auteur dans un nouvel onglet" style="font-size: 11px; height: 24px; line-height: 24px; padding: 0 8px; text-decoration: none; display: inline-flex; align-items: center;">Twitch ↗</a>
+        <a id="authorProfileKick" class="btn small hidden" target="_blank" rel="noopener noreferrer" title="Ouvrir le profil Kick de cet auteur dans un nouvel onglet" style="font-size: 11px; height: 24px; line-height: 24px; padding: 0 8px; text-decoration: none; display: inline-flex; align-items: center;">Kick ↗</a>
+        <span class="grow"></span>
+        <button type="button" id="webProbe" title="Un appel jetable qui teste si le modèle relaie un outil web_search (indisponible hors /responses).">Tester le web</button>
+      </div>
+      <p id="authorMeta" class="meta"></p>
+      <div id="authorAuditBox" class="audit hidden"></div>
+      <div id="authorNoteBox" class="author-note-box hidden" style="margin: 8px 0 10px 0; padding: 8px 12px; background: var(--bg-soft, #1a1d24); border-radius: 6px; border: 1px solid var(--border, #2a2e39);">
+        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+          <span style="font-size: 11px; font-weight: 600; color: var(--muted); display: inline-flex; align-items: center; gap: 4px;">📝 Note modérateur :</span>
+          <input id="authorNoteInput" class="search" type="text" placeholder="Ajouter une note mémo sur cet auteur (ex: averti pour spam, alt de...)" style="flex: 1; min-width: 220px; height: 26px; font-size: 12px;" spellcheck="false" autocomplete="off">
+          <button type="button" id="authorNoteSave" class="btn small" style="height: 26px; font-size: 11px; padding: 0 10px;">Enregistrer</button>
+          <button type="button" id="authorNoteDelete" class="ghost danger hidden" style="height: 26px; font-size: 11px; padding: 0 8px;">Effacer</button>
+          <span id="authorNoteTime" class="meta inline" style="font-size: 10.5px;"></span>
+        </div>
+      </div>
+      <div id="authorFilterBar" class="bar sub-bar hidden" style="margin: 8px 0 10px 0;">
+        <input id="authorMsgFilter" class="search" style="max-width: 260px;" type="text" placeholder="Filtrer dans l'historique…" spellcheck="false" autocomplete="off">
+        <select id="authorMsgVerdict">
+          <option value="">tous les messages</option>
+          <option value="mute">rejetés</option>
+          <option value="keep">acceptés</option>
+          <option value="review">signalés Codex</option>
+        </select>
+        <select id="authorMsgChan"><option value="">tous les chats</option></select>
+        <span id="authorMsgCount" class="meta inline"></span>
+      </div>
+      <div id="authorRecent" class="author-recent" style="margin: 10px 0 14px 0;">
+        <h3 style="font-size: 13px; font-weight: 600; margin-bottom: 8px; color: var(--muted);">Auteurs récemment sanctionnés ou signalés <small>clique pour inspecter</small></h3>
+        <div id="authorRecentChips" style="display: flex; gap: 6px; flex-wrap: wrap;"></div>
+        <p id="authorRecentEmpty" class="empty hidden" style="font-size: 12px; margin: 4px 0;">Aucun auteur récent en mémoire.</p>
+      </div>
+      <div id="authorMsgs" class="msgs"></div>
+    </section>
+
+    <section id="tab-idle" class="pane" hidden aria-hidden="true">
+      <span id="cIdle" class="hidden">0</span>
+      <p class="intro">Outil avancé de relecture d'anciens verdicts, à la demande. Ce bouton peut consommer un quota séparé ; rien ne part automatiquement. Pour le flux normal, utilise « Analyser les messages capturés ».</p>
+
+      <div class="bar">
+        <button type="button" id="idleRun" title="Relit manuellement un ancien lot du journal et peut consommer du quota.">Relire maintenant</button>
+        <span class="grow"></span>
+        <span id="idleMeta" class="meta inline"></span>
+      </div>
+
+      <div id="idleState" class="audit"></div>
+
+      <h3 class="sub">Messages relus</h3>
+      <div class="tablewrap">
+        <table>
+          <thead>
+            <tr><th>Quand</th><th>Auteur</th><th>Message</th><th>Avant</th><th>Après</th><th>Lane</th></tr>
+          </thead>
+          <tbody id="idleRows"></tbody>
+        </table>
+        <p id="idleEmpty" class="empty">Aucun message relu depuis le démarrage.</p>
+      </div>
+    </section>
+
+    <section id="tab-learn" class="pane" hidden aria-hidden="true">
+      <span id="cLearn" class="hidden">0</span>
+      <p class="intro">À la demande, le modèle relit la base de verdicts et propose des termes pour la liste locale. Cible : les messages que le modèle a rejetés alors que les mots-clés n'avaient rien vu. Un terme retenu est appliqué en direct — plus besoin d'appel réseau pour ce cas-là.</p>
+      <div class="bar">
+        <button type="button" id="learnRun" title="Lancer une passe d'apprentissage maintenant">Analyser maintenant</button>
+        <span class="grow"></span>
+        <span id="learnMeta" class="meta inline"></span>
+      </div>
+
+      <h3 class="sub">Liste apprise</h3>
+      <div id="learnTerms" class="terms"></div>
+      <p id="learnEmpty" class="empty">Rien d'appris pour l'instant.</p>
+
+      <h3 class="sub">Changelog</h3>
+      <div class="tablewrap">
+        <table>
+          <thead>
+            <tr><th>Quand</th><th>Action</th><th>Terme</th><th>Motif</th></tr>
+          </thead>
+          <tbody id="learnRows"></tbody>
+        </table>
+        <p id="learnLogEmpty" class="empty">Aucune passe encore.</p>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="helpModal" class="modal">
+    <div class="modal-box help-box">
+      <div class="modal-header">
+        <h3>Raccourcis & Astuces Refchat</h3>
+        <button type="button" id="helpModalClose" class="ghost modal-close" title="Fermer" aria-label="Fermer">&times;</button>
+      </div>
+      <div class="modal-body">
+        <table class="help-table">
+          <tbody>
+            <tr><th><kbd>1</kbd> à <kbd>5</kbd></th><td>Naviguer entre les onglets (Mutés, Journal, Chats, Auteur, Signalements)</td></tr>
+            <tr><th><kbd>S</kbd></th><td>Activer ou couper l'alerte sonore</td></tr>
+            <tr><th><kbd>M</kbd></th><td>Ouvrir la modale pour muter manuellement un pseudo</td></tr>
+            <tr><th><kbd>W</kbd></th><td>Ouvrir la gestion de la Whitelist (auteurs protégés)</td></tr>
+            <tr><th><kbd>B</kbd></th><td>Ouvrir la gestion des mots bannis au clic</td></tr>
+            <tr><th><kbd>C</kbd></th><td>Ouvrir la sauvegarde & restauration de la configuration</td></tr>
+            <tr><th><kbd>H</kbd></th><td>Ouvrir le journal d'audit et historique des actions de modération</td></tr>
+            <tr><th><kbd>P</kbd></th><td>Activer ou couper le Mode Streamer (floutage anti-ban des insultes & mémos)</td></tr>
+            <tr><th><kbd>L</kbd></th><td>Ouvrir le bilan de la session live (durée, volume, récidivistes, export)</td></tr>
+            <tr><th><kbd>O</kbd></th><td>Ouvrir les profils de modération live (Standard, Chill, Compétitif, Bouclier Raid)</td></tr>
+            <tr><th><kbd>U</kbd></th><td>Ouvrir le baromètre d'ambiance et tension du chat en direct</td></tr>
+            <tr><th><kbd>K</kbd></th><td>Ouvrir les modèles de sanctions & macros de modération rapide</td></tr>
+            <tr><th><kbd>X</kbd></th><td>Ouvrir le moteur de règles regex & testeur interactif de motifs</td></tr>
+            <tr><th><kbd>R</kbd></th><td>Actualiser l'onglet en cours (Journal, Signalements, Mutés)</td></tr>
+            <tr><th><kbd>/</kbd></th><td>Focus instantané sur la barre de recherche active</td></tr>
+            <tr><th><kbd>Échap</kbd></th><td>Fermer un dialogue ou vider la recherche en cours</td></tr>
+            <tr><th><kbd>←</kbd> / <kbd>→</kbd></th><td>Feuilleter les messages (plus récents / plus anciens)</td></tr>
+            <tr><th><kbd>?</kbd></th><td>Ouvrir ce panneau d'aide</td></tr>
+            <tr><th><b>Alt + Clic</b></th><td>Sur un pseudo dans le Journal : filtre la vue sur cet auteur</td></tr>
+            <tr><th><b>Double-clic</b></th><td>Sur un message : copie instantanément le texte</td></tr>
+            <tr><th><b>Clic puce chat</b></th><td>Dans le Journal ou Dossier : filtre sur ce flux en 1 clic</td></tr>
+            <tr><th><b>Copier pseudos</b></th><td>Dans Mutés : copie tous les pseudos filtrés pour vos bots ou commandes</td></tr>
+            <tr><th><b>Filtre plateforme</b></th><td>Dans Mutés, Journal, Chats et Signalements : isole les flux Twitch ou Kick en 1 clic</td></tr>
+            <tr><th><b>Whitelist</b></th><td>Dans Mutés : protège vos modérateurs et VIP contre tout mute</td></tr>
+            <tr><th><b>Mots bannis</b></th><td>Dans Mutés : configure les mots bannis au clic</td></tr>
+            <tr><th><b>Clic droit pseudo</b></th><td>Dans le Journal : ouvre la modale de mute pré-remplie</td></tr>
+            <tr><th><b>Tri & Taux des chats</b></th><td>Dans Chats : filtre par taux de rejet (≥5%, 10%, 20%), bouton Live ↗ direct, tri par volume, taux ou A-Z</td></tr>
+            <tr><th><b>Signalements</b></th><td>Filtre par chat, mot-clé & verdict IA, copie des pseudos, bouton Muter direct, signalement Twitch/Kick et export CSV</td></tr>
+            <tr><th><b>Export Auteur</b></th><td>Dans Auteur : filtre par chat et export de l'historique en CSV</td></tr>
+            <tr><th><b>Dossier Auteur</b></th><td>Dans Auteur : alerte visuelle et bouton direct vers le dossier de signalement si l'auteur est fiché</td></tr>
+            <tr><th><b>Export & Chaînes</b></th><td>Dans Chats : export CSV individuel, bouton Signalements par flux et copie des chaînes</td></tr>
+            <tr><th><b>Protection mutés</b></th><td>Dans Mutés : bouton Protéger par ligne ou dans la modale pour basculer en Whitelist</td></tr>
+            <tr><th><b>Période mutés</b></th><td>Dans Mutés : filtre les sanctions récentes (1 h, 24 h, 7 j, 30 j) et exporte la sélection</td></tr>
+            <tr><th><b>Navigation URL</b></th><td>Liens directs : <code>#mutes</code>, <code>#log</code>, <code>#chats</code>, <code>#author</code>, <code>#report</code> ou <code>#author?author=pseudo</code></td></tr>
+            <tr><th><b>Dossier en direct</b></th><td>Sur Twitch et Kick : clic sur un viewer -> bouton <b>Dossier</b> pour inspecter tout son historique Refchat</td></tr>
+            <tr><th><b>Notes & Profils</b></th><td>Dans Auteur : mémo modérateur persistant (<code>📝</code>) et liens directs vers profils Twitch ↗ et Kick ↗</td></tr>
+            <tr><th><b>Gestion Whitelist</b></th><td>Dans Mutés -> Whitelist : recherche, ajout groupé, copie rapide et purge sécurisée</td></tr>
+            <tr><th><b>Tuiles Popup</b></th><td>Dans le popup : clic sur Rejetés ou Acceptés pour ouvrir directement le Journal pré-filtré ; clic sur En attente pour voir la file en direct (<code>queue.html</code>)</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="modal-actions">
+        <button type="button" id="helpModalOk" class="danger">Fermer</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="whitelistModal" class="modal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3>Whitelist Refchat (auteurs protégés)</h3>
+        <button type="button" id="whitelistModalClose" class="ghost modal-close" title="Fermer" aria-label="Fermer">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="meta" style="margin-bottom: 10px;">Les auteurs enregistrés ici ne seront jamais mutés, ni par l'IA ni par mot banni.</p>
+        <div class="bar" style="margin-bottom: 12px; gap: 6px; display: flex;">
+          <input id="whitelistAddInput" type="text" class="search" style="flex: 1;" placeholder="Ajouter un ou plusieurs pseudos (séparés par virgule)…" autocomplete="off" spellcheck="false">
+          <button type="button" id="whitelistAddBtn" class="primary">Ajouter</button>
+        </div>
+        <div class="bar sub-bar" style="margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+          <input id="whitelistSearch" type="text" class="search" style="max-width: 220px;" placeholder="Rechercher…" autocomplete="off" spellcheck="false">
+          <button type="button" id="whitelistCopyBtn" class="btn small" style="height: 24px; padding: 0 8px; font-size: 11px;" title="Copier les pseudos protégés dans le presse-papiers">Copier</button>
+          <button type="button" id="whitelistClearBtn" class="ghost danger" style="height: 24px; padding: 0 8px; font-size: 11px;" title="Vider entièrement la whitelist">Tout vider</button>
+          <span id="whitelistCount" class="meta inline" style="margin-left: auto;">0 auteur protégé</span>
+        </div>
+        <div id="whitelistChips" class="cards" style="max-height: 260px; overflow-y: auto; display: flex; flex-wrap: wrap; gap: 6px; padding: 4px;"></div>
+        <p id="whitelistEmpty" class="empty hidden">Aucun auteur dans la whitelist.</p>
+      </div>
+      <div class="modal-actions">
+        <button type="button" id="whitelistModalOk" class="danger">Fermer</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="wordsModal" class="modal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3>Mots bannis au clic</h3>
+        <button type="button" id="wordsModalClose" class="ghost modal-close" title="Fermer" aria-label="Fermer">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="meta" style="margin-bottom: 10px;">Les messages contenant ces mots déclenchent immédiatement un mute local de l'auteur sans attendre l'IA.</p>
+        <label class="modal-field">Mots ou expressions bannis (séparés par des virgules ou points-virgules)
+          <textarea id="wordsInput" rows="4" style="width: 100%; resize: vertical; font-family: monospace; font-size: 13px; padding: 8px; border-radius: 6px; background: var(--bg-card); color: var(--fg); border: 1px solid var(--border);" placeholder="ex : chokeur, tilting, spoil"></textarea>
+        </label>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px; gap: 8px; flex-wrap: wrap;">
+          <span id="wordsCount" class="meta">0 mot valide</span>
+          <div style="display: flex; gap: 6px; align-items: center;">
+            <button type="button" id="wordsCopyBtn" class="btn small" style="height: 24px; padding: 0 8px; font-size: 11px;" title="Copier tous les mots bannis dans le presse-papiers">Copier</button>
+            <button type="button" id="wordsExportTxt" class="btn small" style="height: 24px; padding: 0 8px; font-size: 11px;" title="Exporter la liste des mots bannis dans un fichier texte">Exporter</button>
+            <button type="button" id="wordsClearBtn" class="ghost danger" style="height: 24px; padding: 0 8px; font-size: 11px;" title="Effacer tous les mots bannis">Effacer</button>
+          </div>
+          <span id="wordsSaved" class="meta ok hidden">Enregistré ✓</span>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" id="wordsModalSave" class="danger">Enregistrer et fermer</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="backupModal" class="modal">
+    <div class="modal-box" style="max-width: 520px;">
+      <div class="modal-header">
+        <h3>Sauvegarde & Restauration Refchat</h3>
+        <button type="button" id="backupModalClose" class="ghost modal-close" title="Fermer" aria-label="Fermer">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="meta" style="margin-bottom: 14px;">
+          Exporte ou importe l'ensemble de ta configuration de modération (réglages, mots bannis, auteurs protégés en Whitelist et notes mémos modérateur). Pratique pour sauvegarder, changer de machine ou synchroniser une équipe de modération.
+        </p>
+
+        <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-bottom: 14px;">
+          <h4 style="margin: 0 0 6px 0; font-size: 13px; font-weight: 600;">1. Exporter la configuration actuelle</h4>
+          <p class="meta" style="font-size: 11.5px; margin-bottom: 10px;" id="backupExportSummary">Calcul des éléments à sauvegarder…</p>
+          <button type="button" id="backupExportBtn" class="primary" style="height: 28px; font-size: 12px;">Télécharger la sauvegarde (.json)</button>
+        </div>
+
+        <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 12px;">
+          <h4 style="margin: 0 0 6px 0; font-size: 13px; font-weight: 600;">2. Restaurer une sauvegarde</h4>
+          <p class="meta" style="font-size: 11.5px; margin-bottom: 10px;">Sélectionne un fichier JSON généré par Refchat pour restaurer tes données.</p>
+          <input type="file" id="backupFileInput" accept=".json,application/json" style="display: none;">
+          <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+            <button type="button" id="backupChooseBtn" class="btn" style="height: 28px; font-size: 12px;">Choisir un fichier…</button>
+            <span id="backupFileName" class="meta" style="font-size: 11.5px;">Aucun fichier sélectionné</span>
+          </div>
+          <div id="backupPreviewBox" class="hidden" style="margin-top: 10px; padding: 8px 10px; background: var(--bg-soft, #1a1d24); border-radius: 6px; border: 1px solid var(--border);">
+            <p id="backupPreviewText" class="meta" style="font-size: 11.5px; margin: 0 0 8px 0;"></p>
+            <div style="display: flex; gap: 8px;">
+              <button type="button" id="backupApplyMerge" class="primary" style="height: 26px; font-size: 11.5px;" title="Ajoute les données du fichier sans effacer vos listes actuelles">Fusionner les données</button>
+              <button type="button" id="backupApplyReplace" class="danger" style="height: 26px; font-size: 11.5px;" title="Remplace l'ensemble des réglages, whitelist et notes par le fichier">Remplacer tout</button>
+            </div>
+          </div>
+        </div>
+        <p id="backupStatus" class="meta ok hidden" style="margin-top: 12px; font-weight: 600;"></p>
+      </div>
+      <div class="modal-actions">
+        <button type="button" id="backupModalOk" class="danger">Fermer</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="auditModal" class="modal">
+    <div class="modal-box" style="max-width: 640px;">
+      <div class="modal-header">
+        <h3>Journal d'audit de modération</h3>
+        <button type="button" id="auditModalClose" class="ghost modal-close" title="Fermer" aria-label="Fermer">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="meta" style="margin-bottom: 12px;">
+          Historique chronologique des actions de modération exécutées (mutes, déban, ajouts whitelist, notes, signalements résolus et configuration).
+        </p>
+        <div class="bar" style="margin-bottom: 10px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+          <input id="auditSearch" type="text" class="search" style="flex: 1; min-width: 160px;" placeholder="Filtrer par pseudo, motif, canal…" autocomplete="off" spellcheck="false">
+          <select id="auditTypeFilter" class="select" style="font-size: 12px; height: 28px; padding: 0 6px; border-radius: 6px; background: var(--bg-card); color: var(--fg); border: 1px solid var(--border);">
+            <option value="all">Toutes les actions</option>
+            <option value="mute">Mutes 🔴</option>
+            <option value="unmute">Démutes 🟢</option>
+            <option value="whitelist">Whitelist 🛡️</option>
+            <option value="note">Notes 📝</option>
+            <option value="report">Signalements ✅</option>
+            <option value="config">Configuration ⚙️</option>
+          </select>
+          <span id="auditCount" class="meta inline" style="margin-left: auto;">0 action</span>
+        </div>
+        <div id="auditList" class="cards" style="max-height: 320px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; padding: 4px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-card);"></div>
+        <p id="auditEmpty" class="empty hidden">Aucune action enregistrée dans le journal d'audit.</p>
+        <div style="display: flex; gap: 6px; align-items: center; margin-top: 12px; flex-wrap: wrap;">
+          <button type="button" id="auditCopyBtn" class="btn small" style="height: 26px; padding: 0 10px; font-size: 11.5px;" title="Copier le rapport d'audit formaté pour Discord/Slack">Copier le rapport</button>
+          <button type="button" id="auditExportJson" class="btn small" style="height: 26px; padding: 0 10px; font-size: 11.5px;" title="Télécharger l'audit au format JSON">Exporter JSON</button>
+          <button type="button" id="auditExportCsv" class="btn small" style="height: 26px; padding: 0 10px; font-size: 11.5px;" title="Télécharger l'audit au format CSV">Exporter CSV</button>
+          <button type="button" id="auditClearBtn" class="ghost danger" style="height: 26px; padding: 0 10px; font-size: 11.5px; margin-left: auto;" title="Vider l'ensemble du journal d'audit">Vider l'historique</button>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" id="auditModalOk" class="danger">Fermer</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="sessionModal" class="modal">
+    <div class="modal-box" style="max-width: 680px;">
+      <div class="modal-header">
+        <h3>Bilan de la session Live</h3>
+        <button type="button" id="sessionModalClose" class="ghost modal-close" title="Fermer" aria-label="Fermer">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="meta" style="margin-bottom: 12px;" id="sessionMetaText">
+          Synthèse globale de l'activité du chat et de la modération depuis le début de la session.
+        </p>
+
+        <div class="session-kpis" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; margin-bottom: 14px;">
+          <div class="kpi" style="padding: 10px 12px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;">
+            <span style="font-size: 11px; color: var(--muted);">⏱️ Durée</span>
+            <b id="sessionDuration" style="font-size: 18px; display: block; margin-top: 2px;">0 min</b>
+            <small id="sessionStartedAt" style="font-size: 10px; color: var(--muted);">&nbsp;</small>
+          </div>
+          <div class="kpi" style="padding: 10px 12px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;">
+            <span style="font-size: 11px; color: var(--muted);">💬 Messages</span>
+            <b id="sessionTotalMsgs" style="font-size: 18px; display: block; margin-top: 2px;">0</b>
+            <small style="font-size: 10px; color: var(--muted);">surveillés</small>
+          </div>
+          <div class="kpi" style="padding: 10px 12px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;">
+            <span style="font-size: 11px; color: var(--muted);">🛡️ Rejets & Infractions</span>
+            <b id="sessionRejections" style="font-size: 18px; display: block; margin-top: 2px; color: var(--bad, #f85149);">0 (0%)</b>
+            <small style="font-size: 10px; color: var(--muted);">bloqués ou signalés</small>
+          </div>
+          <div class="kpi" style="padding: 10px 12px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;">
+            <span style="font-size: 11px; color: var(--muted);">🔴 Mutes & Sanctions</span>
+            <b id="sessionMutesCount" style="font-size: 18px; display: block; margin-top: 2px;">0</b>
+            <small style="font-size: 10px; color: var(--muted);">appliqués</small>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+          <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 10px;">
+            <h4 style="margin: 0 0 6px 0; font-size: 12px; font-weight: 600;">Activité par chaîne</h4>
+            <div id="sessionChanList" style="max-height: 140px; overflow-y: auto; font-size: 11.5px; display: flex; flex-direction: column; gap: 4px;"></div>
+            <p id="sessionChanEmpty" class="meta" style="font-size: 11px; margin: 6px 0 0 0;">Aucune chaîne surveillée.</p>
+          </div>
+          <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 10px;">
+            <h4 style="margin: 0 0 6px 0; font-size: 12px; font-weight: 600;">Principaux récidivistes</h4>
+            <div id="sessionReoffendersList" style="max-height: 140px; overflow-y: auto; font-size: 11.5px; display: flex; flex-direction: column; gap: 4px;"></div>
+            <p id="sessionReoffendersEmpty" class="meta" style="font-size: 11px; margin: 6px 0 0 0;">Aucun récidiviste détecté.</p>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 6px; align-items: center; margin-top: 12px; flex-wrap: wrap;">
+          <button type="button" id="sessionCopyBtn" class="primary small" style="height: 28px; padding: 0 12px; font-size: 12px;" title="Copier le bilan complet prêt pour Discord ou Slack">Copier le bilan Discord</button>
+          <button type="button" id="sessionExportJson" class="btn small" style="height: 28px; padding: 0 10px; font-size: 11.5px;" title="Télécharger le bilan au format JSON">Exporter JSON</button>
+          <button type="button" id="sessionResetBtn" class="ghost danger" style="height: 28px; padding: 0 10px; font-size: 11.5px; margin-left: auto;" title="Démarrer une nouvelle session (réinitialiser le chronomètre et les métriques)">Nouvelle session</button>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" id="sessionModalOk" class="danger">Fermer</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="presetModal" class="modal">
+    <div class="modal-box" style="max-width: 600px;">
+      <div class="modal-header">
+        <h3>Profils de modération live</h3>
+        <button type="button" id="presetModalClose" class="ghost modal-close" title="Fermer" aria-label="Fermer">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="meta" style="margin-bottom: 12px;">
+          Basculez instantanément la stratégie de modération selon le contexte de votre stream (alertes sonores, pauses d'ambiance, mode streamer et mots sensibles ciblés).
+        </p>
+
+        <div id="presetCardsList" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px;"></div>
+
+        <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-size: 12px;">
+          <h4 style="margin: 0 0 8px 0; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+            <span>⚙️</span><span>Personnalisation du profil sélectionné (<span id="presetCurrentName">Standard</span>)</span>
+          </h4>
+          <div style="display: flex; gap: 14px; align-items: center; flex-wrap: wrap; margin-bottom: 8px;">
+            <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+              <input type="checkbox" id="presetSoundToggle"> Alerte sonore
+            </label>
+            <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+              <input type="checkbox" id="presetAmbienceToggle"> Pause ambiance
+            </label>
+            <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+              <input type="checkbox" id="presetStreamerToggle"> Mode Streamer
+            </label>
+          </div>
+          <div>
+            <label style="display: block; font-size: 11px; color: var(--muted); margin-bottom: 4px;">Mots additionnels pour ce profil (séparés par virgules) :</label>
+            <input type="text" id="presetCustomWords" placeholder="ex: backseat, spoil, chokeur..." style="width: 100%; box-sizing: border-box; font-size: 12px; padding: 6px 8px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg); color: var(--fg);">
+          </div>
+        </div>
+        <p id="presetStatus" class="meta ok hidden" style="margin-top: 10px; font-weight: 600;"></p>
+      </div>
+      <div class="modal-actions" style="display: flex; justify-content: space-between; align-items: center;">
+        <span id="presetActiveHint" class="meta" style="font-size: 11px;">Profil actif : Standard</span>
+        <div style="display: flex; gap: 8px;">
+          <button type="button" id="presetSaveCustomBtn" class="primary" style="font-size: 12px; height: 28px;">Appliquer et enregistrer</button>
+          <button type="button" id="presetModalOk" class="danger">Fermer</button>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="moodModal" class="modal">
+    <div class="modal-box" style="max-width: 580px;">
+      <div class="modal-header">
+        <h3>Baromètre d'ambiance & Humeur du Chat</h3>
+        <button type="button" id="moodModalClose" class="ghost modal-close" title="Fermer" aria-label="Fermer">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="meta" style="margin-bottom: 12px;">
+          Analyse en temps réel de la température émotionnelle du chat, calculée sur les messages récents (bienveillance, neutralité et pics de tension).
+        </p>
+
+        <!-- Jauge d'ambiance horizontale -->
+        <div style="margin-bottom: 14px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 12px;">
+          <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px;">
+            <span style="font-size: 13px; font-weight: 600;" id="moodStateLabel">🟢 Excellente & Hype</span>
+            <span style="font-size: 20px; font-weight: 700;" id="moodScoreValue">100%</span>
+          </div>
+          <div style="display: flex; height: 12px; border-radius: 6px; overflow: hidden; background: var(--border); gap: 2px;">
+            <div id="moodBarPositive" style="background: var(--ok, #2ea043); width: 100%; transition: width 0.3s;" title="Messages bienveillants"></div>
+            <div id="moodBarNeutral" style="background: var(--muted, #8b949e); width: 0%; transition: width 0.3s;" title="Messages neutres"></div>
+            <div id="moodBarNegative" style="background: var(--bad, #f85149); width: 0%; transition: width 0.3s;" title="Messages négatifs / infractions"></div>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-size: 10.5px; color: var(--muted); margin-top: 6px;">
+            <span id="moodLegendPos">🟢 0% Positifs</span>
+            <span id="moodLegendNeu">⚪ 0% Neutres</span>
+            <span id="moodLegendNeg">🔴 0% Négatifs</span>
+          </div>
+        </div>
+
+        <!-- 4 cartes de métriques d'ambiance -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin-bottom: 14px;">
+          <div class="kpi" style="padding: 10px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;">
+            <span style="font-size: 11px; color: var(--muted);">Tendance</span>
+            <b id="moodTrend" style="font-size: 14px; display: block; margin-top: 2px;">➡️ Stable</b>
+            <small id="moodTrendSub" style="font-size: 10px; color: var(--muted);">flux récent</small>
+          </div>
+          <div class="kpi" style="padding: 10px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;">
+            <span style="font-size: 11px; color: var(--muted);">Échantillon</span>
+            <b id="moodSampleCount" style="font-size: 14px; display: block; margin-top: 2px;">0 msgs</b>
+            <small style="font-size: 10px; color: var(--muted);">fenêtre active</small>
+          </div>
+          <div class="kpi" style="padding: 10px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;">
+            <span style="font-size: 11px; color: var(--muted);">Pics de tension</span>
+            <b id="moodSpikeStatus" style="font-size: 14px; display: block; margin-top: 2px; color: var(--ok, #2ea043);">Aucun</b>
+            <small style="font-size: 10px; color: var(--muted);">dernières 2 min</small>
+          </div>
+          <div class="kpi" style="padding: 10px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;">
+            <span style="font-size: 11px; color: var(--muted);">Pause Ambiance</span>
+            <b id="moodPauseStatus" style="font-size: 14px; display: block; margin-top: 2px;">Prête</b>
+            <small style="font-size: 10px; color: var(--muted);">seuil 60% négatif</small>
+          </div>
+        </div>
+
+        <!-- Conseil dynamique de modération -->
+        <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-size: 12px; margin-bottom: 12px;">
+          <h4 style="margin: 0 0 4px 0; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+            <span>💡</span><span>Conseil & Recommandation Modération</span>
+          </h4>
+          <p id="moodRecommendation" class="meta" style="margin: 0; font-size: 11.5px; line-height: 1.4;">
+            Le chat est serein et bienveillant. Aucune restriction particulière nécessaire.
+          </p>
+        </div>
+
+        <!-- Actions rapides d'intervention -->
+        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+          <button type="button" id="moodCopyReportBtn" class="primary small" style="height: 28px; padding: 0 10px; font-size: 11.5px;" title="Copier le diagnostic d'ambiance pour Discord / modérateurs">Copier le diagnostic</button>
+          <button type="button" id="moodApplyCompBtn" class="btn small" style="height: 28px; padding: 0 10px; font-size: 11.5px;" title="Activer immédiatement le profil Compétitif">Activer Compétitif [O]</button>
+          <button type="button" id="moodApplyRaidBtn" class="btn small danger" style="height: 28px; padding: 0 10px; font-size: 11.5px;" title="Activer le Bouclier Anti-Raid d'urgence">Bouclier Raid 🛡️</button>
+          <button type="button" id="moodRefreshBtn" class="ghost" style="height: 28px; padding: 0 8px; font-size: 11.5px; margin-left: auto;" title="Actualiser les calculs du baromètre">Actualiser</button>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" id="moodModalOk" class="danger">Fermer</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="macrosModal" class="modal">
+    <div class="modal-box" style="max-width: 620px;">
+      <div class="modal-header">
+        <h3>Modèles de sanctions & Macros modérateur</h3>
+        <button type="button" id="macrosModalClose" class="ghost modal-close" title="Fermer" aria-label="Fermer">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="meta" style="margin-bottom: 12px;">
+          Messages pré-rédigés et motifs de sanctions prêts à l'emploi. Copiez directement pour le chat ou appliquez en 1 clic dans la boîte de mute.
+        </p>
+
+        <!-- Filtres par catégorie -->
+        <div style="display: flex; gap: 6px; align-items: center; margin-bottom: 12px; flex-wrap: wrap;">
+          <input type="text" id="macrosSearch" class="search" placeholder="Rechercher une macro ou règle…" style="flex: 1; min-width: 140px;" autocomplete="off" spellcheck="false">
+          <select id="macrosCategoryFilter" style="height: 28px; font-size: 11.5px; border-radius: 6px; background: var(--bg); color: var(--fg); border: 1px solid var(--border); padding: 0 8px;">
+            <option value="all">Toutes les catégories</option>
+            <option value="respect">Toxicité & Respect</option>
+            <option value="backseat">Backseat & Spoil</option>
+            <option value="spam">Spam & Liens</option>
+            <option value="warning">Avertissements</option>
+            <option value="custom">Macros personnalisées</option>
+          </select>
+          <span id="macrosCount" class="meta" style="font-size: 11px;">0 macro</span>
+        </div>
+
+        <!-- Liste des cartes de macros -->
+        <div id="macrosList" style="display: flex; flex-direction: column; gap: 8px; max-height: 280px; overflow-y: auto; padding: 2px;"></div>
+        <p id="macrosEmpty" class="meta empty hidden" style="text-align: center; margin: 16px 0;">Aucune macro trouvée pour ce filtre.</p>
+
+        <!-- Formulaire d'ajout de macro rapide -->
+        <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 10px; font-size: 12px; margin-top: 12px;">
+          <h4 style="margin: 0 0 6px 0; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+            <span>➕</span><span>Ajouter une macro personnalisée</span>
+          </h4>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 6px;">
+            <input type="text" id="macroNewTitle" placeholder="Titre (ex: Spoil Boss)" style="font-size: 11.5px; padding: 4px 6px; border-radius: 4px; border: 1px solid var(--border); background: var(--bg); color: var(--fg);">
+            <input type="text" id="macroNewReason" placeholder="Motif mute (ex: spoil de boss)" style="font-size: 11.5px; padding: 4px 6px; border-radius: 4px; border: 1px solid var(--border); background: var(--bg); color: var(--fg);">
+          </div>
+          <div style="display: flex; gap: 6px; align-items: center;">
+            <input type="text" id="macroNewText" placeholder="Texte pour le chat (utilisez {author} pour mentionner le viewer)" style="flex: 1; font-size: 11.5px; padding: 4px 6px; border-radius: 4px; border: 1px solid var(--border); background: var(--bg); color: var(--fg);">
+            <button type="button" id="macroAddBtn" class="primary small" style="height: 26px; font-size: 11px;">Enregistrer</button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" id="macrosModalOk" class="danger">Fermer</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="regexModal" class="modal">
+    <div class="modal-box" style="max-width: 640px;">
+      <div class="modal-header">
+        <h3>Moteur de règles Regex & Filtres avancés</h3>
+        <button type="button" id="regexModalClose" class="ghost modal-close" title="Fermer" aria-label="Fermer">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="meta" style="margin-bottom: 12px;">
+          Définissez des expressions régulières (RegExp) pour bloquer automatiquement les liens Discord/Telegram, arnaques crypto, spams de followers et all-caps sans passer par l'IA.
+        </p>
+
+        <!-- Testeur interactif en direct -->
+        <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 10px; margin-bottom: 14px;">
+          <h4 style="margin: 0 0 6px 0; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+            <span>🧪</span><span>Testeur de règles en direct</span>
+          </h4>
+          <input type="text" id="regexTestInput" class="search" placeholder="Tapez un message à tester contre les règles actives…" style="width: 100%; box-sizing: border-box; font-size: 12px; padding: 6px 8px; border-radius: 6px;" autocomplete="off">
+          <div id="regexTestResult" class="meta" style="margin-top: 6px; font-size: 11.5px; font-weight: 500;">
+            Saisissez un message pour tester vos règles.
+          </div>
+        </div>
+
+        <!-- Liste des règles regex -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <h4 style="margin: 0; font-size: 12px; font-weight: 600;">Règles actives & Modèles</h4>
+          <span id="regexCount" class="meta" style="font-size: 11px;">0 règle active</span>
+        </div>
+        <div id="regexRulesList" style="display: flex; flex-direction: column; gap: 8px; max-height: 250px; overflow-y: auto; padding: 2px;"></div>
+
+        <!-- Formulaire d'ajout de règle regex -->
+        <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 10px; font-size: 12px; margin-top: 14px;">
+          <h4 style="margin: 0 0 6px 0; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+            <span>➕</span><span>Créer une règle personnalisée</span>
+          </h4>
+          <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 6px; margin-bottom: 6px;">
+            <input type="text" id="regexNewName" placeholder="Nom (ex: Liens TikTok)" style="font-size: 11.5px; padding: 4px 6px; border-radius: 4px; border: 1px solid var(--border); background: var(--bg); color: var(--fg);">
+            <select id="regexNewAction" style="font-size: 11.5px; padding: 4px; border-radius: 4px; border: 1px solid var(--border); background: var(--bg); color: var(--fg);">
+              <option value="mute">Action : Mute</option>
+              <option value="review">Action : Signaler</option>
+            </select>
+          </div>
+          <div style="display: flex; gap: 6px; align-items: center;">
+            <input type="text" id="regexNewPattern" placeholder="Pattern RegExp (ex: /(?:tiktok\.com|vm\.tiktok)\/[a-z0-9_-]+/i)" style="flex: 1; font-family: monospace; font-size: 11.5px; padding: 4px 6px; border-radius: 4px; border: 1px solid var(--border); background: var(--bg); color: var(--fg);">
+            <button type="button" id="regexAddBtn" class="primary small" style="height: 26px; font-size: 11px;">Ajouter</button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-actions" style="display: flex; justify-content: space-between; align-items: center;">
+        <button type="button" id="regexResetDefaultsBtn" class="ghost" style="font-size: 11.5px;">Réinitialiser les règles</button>
+        <button type="button" id="regexModalOk" class="danger">Fermer</button>
+      </div>
+    </div>
+  </dialog>
+
+  <script src="board.js"></script>
+  <script src="board-menus.js"></script>
+</body>
+</html>

@@ -1,0 +1,704 @@
+.chat-line__message,
+.seventv-chat-message,
+.ffz--chat-line,
+[data-a-target="chat-line-message"] {
+  position: relative;
+}
+
+.chat-line__message.csg-blur .text-fragment,
+.chat-line__message.csg-blur .mention-fragment,
+.chat-line__message.csg-blur .chat-image__wrapper img,
+.seventv-chat-message.csg-blur .seventv-chat-message-body,
+.seventv-chat-message.csg-blur .seventv-chat-message-text,
+.ffz--chat-line.csg-blur .text-fragment,
+[data-a-target="chat-line-message"].csg-blur .text-fragment {
+  filter: blur(7px);
+  opacity: 0.7;
+}
+
+.chat-line__message.csg-blur:hover .text-fragment,
+.chat-line__message.csg-blur:hover .mention-fragment,
+.chat-line__message.csg-blur:hover .chat-image__wrapper img,
+.seventv-chat-message.csg-blur:hover .seventv-chat-message-body,
+.seventv-chat-message.csg-blur:hover .seventv-chat-message-text,
+.ffz--chat-line.csg-blur:hover .text-fragment,
+[data-a-target="chat-line-message"].csg-blur:hover .text-fragment {
+  filter: none;
+  opacity: 1;
+}
+
+[data-csg-blocked="1"].csg-hidden {
+  display: none !important;
+}
+
+.csg-block:not(.csg-revealed) .text-fragment,
+.csg-block:not(.csg-revealed) .mention-fragment,
+.csg-block:not(.csg-revealed) .chat-image__wrapper,
+.csg-block:not(.csg-revealed) .seventv-chat-message-body,
+.csg-block:not(.csg-revealed) .seventv-chat-message-text,
+.csg-block:not(.csg-revealed) img.chat-line__message--emote,
+.csg-block:not(.csg-revealed) .chat-image {
+  display: none !important;
+}
+
+/* En-tête « Répond à @x : … ». Il republie le message d'origine, et aucune
+   règle ci-dessus ne le vise : ni .text-fragment sur Twitch, ni le span Kick
+   leading-[...]. Un message coupé restait donc lisible dès que quelqu'un lui
+   répondait, et un auteur muté revenait sur la ligne d'un autre. Deux cas :
+   .csg-reply-cut, posé par maskReply quand la citation est sale, et la ligne
+   déjà bloquée, qui ne doit pas garder son propre en-tête. Sélecteurs alignés
+   sur REPLY_SEL (content.js). */
+.csg-reply-cut:not(.csg-revealed) [class*="reply" i],
+.csg-reply-cut:not(.csg-revealed) [data-a-target*="reply" i],
+.csg-reply-cut:not(.csg-revealed) [data-test-selector*="reply" i],
+.csg-reply-cut:not(.csg-revealed) .seventv-reply-part,
+.csg-reply-cut:not(.csg-revealed) .seventv-chat-reply,
+.csg-reply-cut:not(.csg-revealed) .ffz--fix-reply-line,
+.csg-block:not(.csg-revealed) [class*="reply" i],
+.csg-block:not(.csg-revealed) [data-a-target*="reply" i],
+.csg-block:not(.csg-revealed) [data-test-selector*="reply" i],
+.csg-block:not(.csg-revealed) .seventv-reply-part,
+.csg-block:not(.csg-revealed) .seventv-chat-reply,
+.csg-block:not(.csg-revealed) .ffz--fix-reply-line,
+.csg-hidden [class*="reply" i],
+.csg-hidden [data-a-target*="reply" i],
+.csg-hidden [data-test-selector*="reply" i],
+.csg-reply-cut:not(.csg-revealed) .csg-quote,
+.csg-block:not(.csg-revealed) .csg-quote,
+.csg-hidden .csg-quote {
+  display: none !important;
+}
+
+/* Mode flou : la citation suit le même sort que le corps du message, sinon on
+   floute la réponse en laissant l'original net juste au-dessus. */
+.csg-blur:not(.csg-revealed) [class*="reply" i],
+.csg-blur:not(.csg-revealed) [data-a-target*="reply" i],
+.csg-blur:not(.csg-revealed) [data-test-selector*="reply" i],
+.csg-blur:not(.csg-revealed) .seventv-reply-part,
+.csg-blur:not(.csg-revealed) .seventv-chat-reply,
+.csg-blur:not(.csg-revealed) .csg-quote {
+  filter: blur(7px);
+  opacity: 0.7;
+}
+
+.csg-blur:hover [class*="reply" i],
+.csg-blur:hover [data-a-target*="reply" i],
+.csg-blur:hover [data-test-selector*="reply" i],
+.csg-blur:hover .seventv-reply-part,
+.csg-blur:hover .seventv-chat-reply,
+.csg-blur:hover .csg-quote {
+  filter: none !important;
+  opacity: 1 !important;
+}
+
+/* Ligne masquée : un rail discret tient la place du message. Sa teinte suit la
+   raison du blocage (--csg-accent, défini plus bas) : on lit la sévérité d'un
+   coup d'œil sans avoir à lire l'étiquette. */
+.csg-block {
+  --csg-accent: #ff7a8c;
+  border-left: 2px solid color-mix(in srgb, var(--csg-accent) 40%, transparent);
+  padding-left: 7px;
+  border-radius: 2px;
+}
+
+/* Message révélé : visible mais visuellement marqué comme filtré. */
+.csg-block.csg-revealed {
+  opacity: 0.72;
+  border-left-color: color-mix(in srgb, var(--csg-accent) 78%, transparent);
+}
+
+.csg-blur.csg-revealed .text-fragment,
+.csg-blur.csg-revealed .mention-fragment,
+.csg-blur.csg-revealed .seventv-chat-message-body,
+.csg-blur.csg-revealed .seventv-chat-message-text {
+  filter: none !important;
+  opacity: 1 !important;
+}
+
+/* Étiquette de blocage : une puce compacte, pas une phrase en italique rouge.
+   Le chat en empile des dizaines — elle doit se lire en périphérie sans tirer
+   l'œil plus que les messages qui restent visibles. */
+.csg-blocked-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: 6px;
+  padding: 1px 8px 1px 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--csg-accent, #ff7a8c) 13%, transparent);
+  border: 1px solid color-mix(in srgb, var(--csg-accent, #ff7a8c) 30%, transparent);
+  color: var(--csg-accent, #ff7a8c);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  font-style: normal;
+  line-height: 1.55;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  vertical-align: middle;
+  user-select: none;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: background-color 0.12s ease, border-color 0.12s ease;
+}
+
+/* Pastille pleine : rappelle la couleur du rail à gauche de la ligne. */
+.csg-blocked-label::before {
+  content: '';
+  flex: none;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.9;
+}
+
+/* « voir » ne se déplie qu'au survol : au repos la puce reste courte. */
+.csg-blocked-label::after {
+  content: 'voir';
+  max-width: 0;
+  overflow: hidden;
+  opacity: 0;
+  font-weight: 500;
+  transition: max-width 0.14s ease, opacity 0.14s ease;
+}
+
+.csg-blocked-label:hover,
+.csg-blocked-label:focus-visible {
+  background: color-mix(in srgb, var(--csg-accent, #ff7a8c) 22%, transparent);
+  border-color: color-mix(in srgb, var(--csg-accent, #ff7a8c) 48%, transparent);
+  outline: none;
+}
+
+.csg-blocked-label:hover::after,
+.csg-blocked-label:focus-visible::after {
+  max-width: 3.5em;
+  opacity: 0.8;
+}
+
+.csg-blocked-label:focus-visible {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--csg-accent, #ff7a8c) 35%, transparent);
+}
+
+/* Une fois révélé, le message reprend la main : la puce redevient neutre et
+   n'affiche plus « voir » (son texte dit déjà « masquer »). */
+.csg-block.csg-revealed .csg-blocked-label { --csg-accent: #9fb0c4; }
+.csg-block.csg-revealed .csg-blocked-label::after { content: none; }
+
+/* Teinte par raison. Rose = liste locale et motifs durs, violet = roster
+   Vitality, ambre = verdict modèle (donc incertain), gris = décision qui ne
+   porte pas sur le texte (auteur déjà muet, spam 67). */
+.csg-block[data-csg-reason='vitality'] .csg-blocked-label { --csg-accent: #b79bff; }
+.csg-block[data-csg-reason='LLM'] .csg-blocked-label,
+.csg-block[data-csg-reason='LLM?'] .csg-blocked-label,
+.csg-block[data-csg-reason='flou'] .csg-blocked-label { --csg-accent: #f0a75b; }
+.csg-block[data-csg-reason='muet'] .csg-blocked-label,
+.csg-block[data-csg-reason='ref 67'] .csg-blocked-label { --csg-accent: #9fb0c4; }
+/* Teinte propre a la liste apprise : elle vient d'un terme que le modele a
+   propose, pas d'une regle ecrite a la main. La distinguer permet d'auditer
+   d'un coup d'oeil ce que l'auto-apprentissage masque reellement. */
+.csg-block[data-csg-reason='appris'] .csg-blocked-label { --csg-accent: #5fc2b0; }
+.csg-block[data-csg-reason='appris'] { --csg-accent: #5fc2b0; }
+
+/* Le rail de la ligne prend la même teinte que sa puce. */
+.csg-block[data-csg-reason='vitality'] { --csg-accent: #b79bff; }
+.csg-block[data-csg-reason='LLM'],
+.csg-block[data-csg-reason='LLM?'],
+.csg-block[data-csg-reason='flou'] { --csg-accent: #f0a75b; }
+.csg-block[data-csg-reason='muet'],
+.csg-block[data-csg-reason='ref 67'] { --csg-accent: #9fb0c4; }
+
+/* Auteur déjà muet : le pseudo reste, mais il ne crie plus. Barré, badges
+   passés au gris, fond à peine posé. Le message est déjà retiré par .csg-block.
+   « Cacher le pseudo » n'utilise pas cette classe : la ligne part en .csg-hidden. */
+.csg-mute:not(.csg-revealed) {
+  background: rgba(255, 255, 255, 0.035);
+  border-radius: 4px;
+}
+
+.csg-mute:not(.csg-revealed) :is(
+  [data-a-target="chat-message-username"],
+  [data-a-target="chat-username"],
+  [data-a-target="chat-name"],
+  .chat-author__display-name,
+  .chat-line__username,
+  .seventv-chat-user-username,
+  .seventv-chat-user,
+  [data-testid="chat-entry-username"],
+  button[data-prevent-expand="true"]
+) {
+  color: #8b939e !important;
+  opacity: 0.8;
+  text-decoration: line-through;
+  text-decoration-color: rgba(255, 255, 255, 0.35);
+}
+
+.csg-mute:not(.csg-revealed) :is(
+  .chat-badge,
+  .chat-line__message--badges,
+  [data-a-target^="chat-badge"],
+  .seventv-chat-badge,
+  img.chat-badge
+) {
+  opacity: 0.35;
+  filter: grayscale(1);
+}
+
+.tw-root--theme-light .csg-mute:not(.csg-revealed) {
+  background: rgba(0, 0, 0, 0.035);
+}
+
+.tw-root--theme-light .csg-mute:not(.csg-revealed) :is(
+  [data-a-target="chat-message-username"],
+  [data-a-target="chat-username"],
+  [data-a-target="chat-name"],
+  .chat-author__display-name,
+  .chat-line__username,
+  .seventv-chat-user-username,
+  .seventv-chat-user,
+  [data-testid="chat-entry-username"],
+  button[data-prevent-expand="true"]
+) {
+  color: #5c6570 !important;
+  text-decoration-color: rgba(0, 0, 0, 0.35);
+}
+
+/* « muté » n'est pas une bulle : juste le mot, à côté du pseudo barré.
+   Le clic pour réafficher le message reste sur ce mot. */
+.csg-mute .csg-blocked-label,
+.csg-mute .csg-blocked-label:hover,
+.csg-mute .csg-blocked-label:focus-visible,
+[data-index].csg-mute .csg-blocked-label {
+  margin-left: 8px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  color: #7a828c;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+.csg-mute .csg-blocked-label::before {
+  content: none;
+}
+
+.csg-mute .csg-blocked-label:hover,
+.csg-mute .csg-blocked-label:focus-visible {
+  color: #d7dbe1;
+}
+
+.tw-root--theme-light .csg-mute .csg-blocked-label,
+.tw-root--theme-light .csg-mute .csg-blocked-label:hover,
+.tw-root--theme-light .csg-mute .csg-blocked-label:focus-visible {
+  color: #5c6570;
+}
+
+.tw-root--theme-light .csg-mute .csg-blocked-label:hover,
+.tw-root--theme-light .csg-mute .csg-blocked-label:focus-visible {
+  color: #2c3138;
+}
+
+/* Thème clair Twitch : les mêmes teintes sont trop pâles sur fond blanc. */
+.tw-root--theme-light .csg-blocked-label { --csg-accent: #c8384f; }
+.tw-root--theme-light .csg-block[data-csg-reason='vitality'] .csg-blocked-label { --csg-accent: #6b45c9; }
+.tw-root--theme-light .csg-block[data-csg-reason='LLM'] .csg-blocked-label,
+.tw-root--theme-light .csg-block[data-csg-reason='LLM?'] .csg-blocked-label,
+.tw-root--theme-light .csg-block[data-csg-reason='flou'] .csg-blocked-label { --csg-accent: #8a5510; }
+.tw-root--theme-light .csg-block[data-csg-reason='muet'] .csg-blocked-label,
+.tw-root--theme-light .csg-block[data-csg-reason='ref 67'] .csg-blocked-label { --csg-accent: #55606e; }
+
+@media (prefers-reduced-motion: reduce) {
+  .csg-blocked-label,
+  .csg-blocked-label::after { transition: none; }
+}
+
+/* HUD : même graphite que le popup et le tableau (valeurs en dur, theme.css
+   n'est pas injecté dans Twitch/Kick). Pas de backdrop-filter : le chat
+   repeint sans arrêt et un flou dessous se paierait à chaque frame. Le rail
+   gauche porte l'état du jugement, la pastille celui de la capture. */
+#csg-hud {
+  --csg-hud-tone: #656c76;
+  position: fixed;
+  top: 72px;
+  right: 16px;
+  width: 240px;
+  max-width: calc(100vw - 24px);
+  z-index: 9999;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0 0 0 3px;
+  overflow: hidden;
+  background: rgba(18, 20, 24, 0.95);
+  border: 0;
+  border-radius: 10px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.09), 0 8px 24px rgba(0, 0, 0, 0.45);
+  font: 11.5px/1.4 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
+  color: #eceef1;
+  text-align: left;
+  pointer-events: auto;
+}
+
+#csg-hud::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: var(--csg-hud-tone);
+}
+
+/* États posés par paintHud (snapshotAudit) : vert = ça juge ou c'est prêt,
+   ambre = en pause (jugement coupé, rate limit, chat non capté),
+   rouge = rien ne peut juger (pas de clé, modèle en erreur). */
+#csg-hud.idle,
+#csg-hud.running,
+#csg-hud.queued { --csg-hud-tone: #3ecf8e; }
+#csg-hud.paused { --csg-hud-tone: #f2b441; }
+#csg-hud.offline { --csg-hud-tone: #ff5c72; }
+
+.csg-hud-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 5px 6px 9px;
+}
+
+.csg-hud-sum {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.csg-hud-x {
+  appearance: none;
+  pointer-events: auto;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #7d848e;
+  cursor: pointer;
+  font: 11px/1 'Segoe UI', system-ui, sans-serif;
+}
+
+.csg-hud-x:hover {
+  background: rgba(255, 92, 114, 0.16);
+  color: #ff5c72;
+}
+
+.csg-hud-x:focus-visible {
+  outline: 2px solid rgba(236, 238, 241, 0.5);
+  outline-offset: 1px;
+}
+
+/* Le corps est écrit en textContent avec des \n (état, dernier message,
+   masqués) : pre-line les rend en lignes au lieu de tout coller. Retrait
+   aligné sur le texte du résumé, après la pastille. */
+.csg-hud-body {
+  padding: 0 10px 8px 25px;
+  color: #a7adb6;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.csg-hud-dot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #656c76;
+}
+
+.csg-hud-dot.on,
+.csg-hud-dot.pulse {
+  background: #3ecf8e;
+  box-shadow: 0 0 0 3px rgba(62, 207, 142, 0.16);
+}
+
+.csg-hud-dot.pulse { animation: csg-hud-pulse 1.2s ease-in-out infinite; }
+
+@keyframes csg-hud-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .csg-hud-dot.pulse { animation: none; }
+}
+
+/* --- Kick --------------------------------------------------------------
+   Le chat Kick n'a aucune des classes Twitch (.text-fragment, .seventv-*) :
+   sans ces règles, une ligne marquée csg-block/csg-blur restait entièrement
+   lisible. Le corps du message est un <span class="leading-[1.55] ...">, les
+   émotes des <span data-emote-id>. On vise aussi les images pour que les
+   émotes disparaissent avec le texte. */
+.csg-blur span[class*='leading-['],
+.csg-blur span[data-emote-id] {
+  filter: blur(7px);
+  opacity: 0.7;
+}
+
+.csg-blur:hover span[class*='leading-['],
+.csg-blur:hover span[data-emote-id],
+.csg-blur.csg-revealed span[class*='leading-['],
+.csg-blur.csg-revealed span[data-emote-id] {
+  filter: none !important;
+  opacity: 1 !important;
+}
+
+.csg-block:not(.csg-revealed) span[class*='leading-['],
+.csg-block:not(.csg-revealed) span[data-emote-id] {
+  display: none !important;
+}
+
+/* La row Kick est en position:absolute dans une liste virtualisée dont la
+   hauteur est calculée par Kick : un display:none laisserait un trou blanc.
+   On la réduit visuellement au lieu de la retirer du flux. */
+[data-index][data-csg-blocked='1'].csg-hidden {
+  display: block !important;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* La puce doit rester lisible sur fond Kick, dont les lignes sont plus denses
+   que Twitch : on resserre le rembourrage sans toucher aux teintes. */
+[data-index] .csg-blocked-label {
+  padding: 0 7px 0 5px;
+  font-size: 10.5px;
+}
+
+.csg-wl-slot {
+  display: flex;
+  gap: 6px;
+  flex: 1 0 100%;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 8px 0 0;
+}
+
+.csg-wl-btn {
+  display: flex;
+  flex: 1 1 0;
+  width: auto;
+  min-width: 0;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 6px 10px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.04);
+  color: #efeff1;
+  font: 600 12px/1.2 inherit;
+  cursor: pointer;
+}
+
+.csg-wl-btn[hidden] {
+  display: none !important;
+}
+
+.csg-wl-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.csg-wl-btn.on {
+  border-color: rgba(0, 209, 154, 0.85);
+  background: rgba(0, 209, 154, 0.14);
+  color: #8ff5d2;
+}
+
+.csg-mute-btn.on {
+  border-color: rgba(255, 77, 103, 0.9);
+  background: rgba(255, 77, 103, 0.16);
+  color: #ffc1ca;
+}
+
+/* Grok répond à sa place : état actif, distinct de whitelist (vert) et mute (rouge). */
+.csg-hand-btn.on {
+  border-color: rgba(145, 120, 255, 0.9);
+  background: rgba(145, 120, 255, 0.16);
+  color: #d6ccff;
+}
+
+/* Dossier : ouverture du profil et de l'historique dans Refchat */
+.csg-board-btn:hover {
+  border-color: rgba(94, 161, 255, 0.85);
+  background: rgba(94, 161, 255, 0.15);
+  color: #cde4ff;
+}
+
+.csg-board-btn.warn {
+  border-color: rgba(255, 170, 0, 0.9);
+  background: rgba(255, 170, 0, 0.16);
+  color: #ffcc66;
+}
+
+.csg-board-btn.noted {
+  border-color: rgba(94, 161, 255, 0.7);
+  background: rgba(94, 161, 255, 0.12);
+  color: #cde4ff;
+}
+
+/* Bouton « G » à côté de la flèche Répondre : Grok répond à ce message.
+   Le libellé est en ::before pour ne jamais entrer dans le texte de la ligne. */
+.csg-grok-icon {
+  display: inline-flex;
+  align-items: center;
+}
+
+.csg-grok-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  margin: 0 0 0 2px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #d6ccff;
+  font: 700 12px/1 inherit;
+  cursor: pointer;
+}
+
+.csg-grok-btn::before {
+  content: 'G';
+}
+
+.csg-grok-btn:hover {
+  background: rgba(145, 120, 255, 0.22);
+  color: #fff;
+}
+
+.csg-grok-btn[data-state='think'] {
+  background: rgba(145, 120, 255, 0.28);
+  animation: csg-grok-think 1s ease-in-out infinite alternate;
+  cursor: progress;
+}
+
+.csg-grok-btn[data-state='think']::before {
+  content: '…';
+}
+
+.csg-grok-btn[data-state='sent'] {
+  background: rgba(0, 209, 154, 0.18);
+  color: #8ff5d2;
+}
+
+.csg-grok-btn[data-state='sent']::before {
+  content: '✓';
+}
+
+.csg-grok-btn[data-state='err'] {
+  background: rgba(255, 77, 103, 0.18);
+  color: #ffc1ca;
+}
+
+.csg-grok-btn[data-state='err']::before {
+  content: '!';
+}
+
+@keyframes csg-grok-think {
+  from { opacity: 0.55; }
+  to { opacity: 1; }
+}
+
+/* Sans barre d'icônes Twitch (7TV, FFZ) : coin haut droit, visible au survol. */
+.csg-grok-float {
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  z-index: 2;
+  opacity: 0;
+  background: rgba(24, 24, 27, 0.9);
+}
+
+:hover > .csg-grok-float,
+.csg-grok-float[data-state='think'],
+.csg-grok-float[data-state='sent'],
+.csg-grok-float[data-state='err'] {
+  opacity: 1;
+}
+
+.csg-mute-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+/* Keep the transcript in the DOM: capture continues while it is invisible. */
+html.csg-chat-paused [data-test-selector="chat-scrollable-area__message-container"],
+html.csg-chat-paused .chat-scrollable-area__message-container,
+html.csg-chat-paused .seventv-chat-list,
+html.csg-chat-paused [data-testid="chatroom-messages"],
+html.csg-chat-paused #chatroom-messages,
+html.csg-chat-paused .video-chat__message-list-wrapper,
+html.csg-chat-paused [data-a-target="video-chat"],
+html.csg-chat-paused .video-chat,
+html.csg-chat-paused .chat-line__message,
+html.csg-chat-paused .seventv-chat-message,
+html.csg-chat-paused .ffz--chat-line,
+html.csg-chat-paused [data-a-target="chat-line-message"],
+html.csg-chat-paused [data-testid="chatroom-messages"] *,
+html.csg-chat-paused .chat-scrollable-area__message-container *,
+html.csg-chat-paused .seventv-chat-list * {
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+#csg-ambience-pause {
+  position: fixed; right: 16px; bottom: 105px; z-index: 2147483647;
+  max-width: 300px; padding: 14px; border-radius: 10px;
+  background: #18181b; color: #f4f4f5; border: 1px solid #777;
+  font: 14px/1.5 sans-serif; box-shadow: 0 4px 20px #0008;
+}
+#csg-ambience-pause span { display: block; margin-bottom: 8px; }
+#csg-ambience-pause button {
+  cursor: pointer; padding: 7px 12px; border-radius: 6px;
+  border: 0; background: #a970ff; color: #fff; font: inherit;
+}
+
+#csg-reply-draft {
+  position: fixed; right: 16px; bottom: 105px; z-index: 2147483647;
+  box-sizing: border-box; width: min(370px, calc(100vw - 32px));
+  max-height: calc(100vh - 130px); overflow-y: auto;
+  padding: 14px; border-radius: 10px; border: 1px solid #a970ff;
+  background: #18181b; color: #f4f4f5; box-shadow: 0 4px 20px #0008;
+  font: 14px/1.45 sans-serif;
+}
+#csg-auto-reply-control {
+  position: fixed; right: 16px; bottom: 105px; z-index: 2147483646;
+  max-width: calc(100vw - 32px); padding: 10px; border-radius: 8px;
+  border: 1px solid #a970ff; background: #18181b; color: #fff;
+  font: 14px/1.4 sans-serif;
+}
+#csg-auto-reply-control > div { display: flex; gap: 12px; align-items: center; margin: 4px 0; }
+#csg-auto-reply-control button {
+  border: 1px solid #e66; border-radius: 5px; background: #522; color: #fff;
+  padding: 6px 10px; cursor: pointer; font: inherit;
+}
+#csg-reply-draft p { margin: 8px 0; }
+#csg-reply-draft textarea {
+  box-sizing: border-box; width: 100%; min-height: 88px; resize: vertical;
+  padding: 8px; border-radius: 6px; border: 1px solid #777;
+  background: #27272a; color: #fff; font: inherit;
+}
+#csg-reply-draft > div { display: flex; flex-wrap: wrap; gap: 7px; }
+#csg-reply-draft button {
+  cursor: pointer; padding: 7px 10px; border-radius: 6px;
+  border: 1px solid #777; background: #37313e; color: #fff; font: inherit;
+}
+#csg-reply-draft button:disabled { opacity: .55; cursor: wait; }
+#csg-reply-draft button:focus-visible, #csg-reply-draft textarea:focus-visible {
+  outline: 2px solid #bf94ff; outline-offset: 2px;
+}

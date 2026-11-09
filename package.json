@@ -1,0 +1,14 @@
+{
+  "name": "refchat",
+  "version": "3.39.7",
+  "private": true,
+  "description": "Extension Chrome (MV3) : filtre les chats Twitch et Kick, masque les auteurs toxiques et met le chat en pause quand il dérape.",
+  "scripts": {
+    "test": "node tests/check-grok.js",
+    "check": "node tools/check-syntax.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT"
+}

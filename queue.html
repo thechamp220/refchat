@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Refchat — File d'attente</title>
+  <link rel="icon" href="icons/icon48.png">
+  <link rel="stylesheet" href="theme.css">
+  <style>
+    body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.45 var(--font); }
+    main { max-width: 1100px; margin: 0 auto; padding: 24px 16px 48px; }
+    header { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 18px; }
+    h1 { font: 600 22px/1.2 var(--display); margin: 0; }
+    #count { font: 600 22px/1.2 var(--display); color: var(--warn); font-variant-numeric: tabular-nums; }
+    #meta { color: var(--ink-3); font-size: 12.5px; }
+    #find { margin-left: auto; min-width: 220px; padding: 7px 10px; border-radius: 8px; border: 1px solid var(--line-2);
+            background: var(--surface); color: var(--ink); font: inherit; }
+    #find:focus { outline: 2px solid var(--focus); outline-offset: 1px; }
+    table { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+    th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+    th { color: var(--ink-3); font-weight: 600; font-size: 12px; background: var(--raised); position: sticky; top: 0; }
+    tr:last-child td { border-bottom: 0; }
+    td.n, td.age { color: var(--ink-3); font-variant-numeric: tabular-nums; white-space: nowrap; }
+    td.who { font-weight: 600; white-space: nowrap; }
+    td.chan { color: var(--ink-2); white-space: nowrap; }
+    td.msg { word-break: break-word; }
+    tr.judging td { background: color-mix(in srgb, var(--warn) 8%, transparent); }
+    .tag { display: inline-block; margin-left: 6px; padding: 0 6px; border-radius: 6px; font-size: 11px; font-weight: 600;
+           color: var(--warn); border: 1px solid color-mix(in srgb, var(--warn) 45%, transparent); }
+    .empty { padding: 40px 0; text-align: center; color: var(--ink-3); }
+    .err { color: var(--bad); }
+    @media (max-width: 640px) { td.chan, th.chan, td.n, th.n { display: none; } #find { margin-left: 0; width: 100%; } }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>File d'attente</h1>
+      <span id="count">…</span>
+      <span id="meta"></span>
+      <input id="find" type="search" placeholder="Filtrer (auteur, message, chaîne)" autocomplete="off">
+    </header>
+    <div id="out"></div>
+  </main>
+  <script src="queue.js"></script>
+</body>
+</html>

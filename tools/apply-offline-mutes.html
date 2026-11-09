@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="fr"><head><meta charset="utf-8"><title>Refchat — mutes offline</title>
+<style>body{font:16px/1.4 system-ui;background:#16181d;color:#eceef1;padding:24px}</style>
+</head><body><pre id="out">application…</pre>
+<script>
+const MUT = {};
+chrome.storage.local.get({ csg_muted: {} }, ({ csg_muted }) => {
+  const next = Object.assign({}, csg_muted || {});
+  let added = 0, skip = 0;
+  for (const [k, v] of Object.entries(MUT)) {
+    if (next[k]) { skip++; continue; }
+    next[k] = v;
+    added++;
+  }
+  const keys = Object.keys(next);
+  if (keys.length > 1000) {
+    const sortable = keys.map((k) => ({ k, at: (next[k] && next[k].at) || 0, perm: !!(next[k] && next[k].perm) })).sort((a, b) => a.at - b.at);
+    for (const s of sortable) {
+      if (Object.keys(next).length <= 1000) break;
+      if (!s.perm) delete next[s.k];
+    }
+  }
+  chrome.storage.local.set({ csg_muted: next, csg_muted_ver: Date.now() }, () => {
+    document.getElementById('out').textContent = 'OK added ' + added + ' skipped-existing ' + skip + ' total ' + Object.keys(next).length;
+  });
+});
+</script></body></html>

@@ -1,0 +1,23 @@
+# Sauvegardes et artefacts de dev
+.backups/
+.design-3.19.1-backup/
+*.zip
+
+# Donnees locales et secrets (jamais versionnes)
+sync-server/data/
+sync-server/.env.local
+.env
+.env.local
+
+# Dependances
+node_modules/
+
+# OS / editeurs
+.DS_Store
+Thumbs.db
+desktop.ini
+.cursor/
+
+# Copies de synchronisation et réglages locaux d'outils
+*Name clash*
+.claude/

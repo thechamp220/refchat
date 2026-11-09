@@ -1,0 +1,51 @@
+{
+  "manifest_version": 3,
+  "name": "Refchat",
+  "version": "3.39.7",
+  "description": "Refchat analyse Twitch et Kick et met temporairement le chat en pause si les messages négatifs deviennent trop nombreux.",
+  "minimum_chrome_version": "116",
+  "permissions": ["storage", "unlimitedStorage", "webNavigation", "scripting", "notifications", "alarms", "tabs"],
+  "host_permissions": [
+    "*://*.twitch.tv/*",
+    "*://*.kick.com/*",
+    "https://generativelanguage.googleapis.com/*",
+    "https://api.z.ai/*",
+    "https://api.x.ai/*",
+    "https://opencode.ai/*",
+    "https://auth.x.ai/*",
+    "https://accounts.x.ai/*",
+    "http://127.0.0.1:8788/*"
+  ],
+  "optional_host_permissions": ["https://*/*", "http://*/*"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Refchat",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://*.twitch.tv/*", "*://*.kick.com/*"],
+      "exclude_matches": [
+        "*://player.twitch.tv/*",
+        "*://*.twitch.tv/embed/*",
+        "*://embed.twitch.tv/*"
+      ],
+      "js": ["keywords.js", "regex-rules.js", "content.js"],
+      "css": ["content.css"],
+      "run_at": "document_idle",
+      "all_frames": true
+    }
+  ]
+}
